@@ -1,5 +1,3 @@
-# Just throwing this up in case I want to revert to here later
-
 #!/usr/bin/python
 
 import libtcodpy as libtcod
@@ -41,11 +39,11 @@ class Map:
         self.tiles = tiles
 
     def draw(self):
-        print self.tiles[0][9]
+        print self.tiles[9][0]
         for x in range(self.width):
             for y in range(self.height):
-                libtcod.console_set_default_foreground(con, libtcod.Color(128, 192, 64))
-                libtcod.console_put_char(con, x, y, self.tiles[y][x], libtcod.BKGND_NONE)
+                libtcod.console_set_default_foreground(con, self.tiles[x][y].color)
+                libtcod.console_put_char(con, x, y, self.tiles[x][y].char, libtcod.BKGND_NONE)
         libtcod.console_blit(con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
 
 class Tile:
@@ -91,77 +89,6 @@ class Object:
         #erase the character that represents this object
         libtcod.console_put_char(con, self.x, self.y, ' ', libtcod.BKGND_NONE)
 
-class Item:
-    #an item that can be picked up and used.
-    def __init__(self, use_function=None):
-        self.use_function = use_function
-
-    def pick_up(self):
-        #add to the player's inventory and remove from the map
-        if len(inventory) >= 20:
-            message('Your inventory is full, cannot pick up ' + self.owner.name + '.', libtcod.red)
-        else:
-            inventory.append(self.owner)
-            objects.remove(self.owner)
-            message('You picked up a ' + self.owner.name + '!', libtcod.green)
-
-    def drop(self):
-        #special case: if the object has the Equipment component, dequip it before dropping
-        if self.owner.equipment:
-            self.owner.equipment.dequip()
-
-        #add to the map and remove from the player's inventory. also, place it at the player's coordinates
-        objects.append(self.owner)
-        inventory.remove(self.owner)
-        self.owner.x = player.x
-        self.owner.y = player.y
-        message('You dropped a ' + self.owner.name + '.', libtcod.yellow)
-
-    def use(self):
-        #special case: if the object has the Equipment component, the "use" action is to equip/dequip
-        if self.owner.equipment:
-            self.owner.equipment.toggle_equip()
-            return
-
-        #just call the "use_function" if it is defined
-        if self.use_function is None:
-            message('The ' + self.owner.name + ' cannot be used.')
-        else:
-            if self.use_function() != 'cancelled':
-                inventory.remove(self.owner)  #destroy after use, unless it was cancelled for some reason
-
-class Equipment:
-    #an object that can be equipped, yielding bonuses. automatically adds the Item component.
-    def __init__(self, slot, power_bonus=0, defense_bonus=0, max_hp_bonus=0):
-        self.power_bonus = power_bonus
-        self.defense_bonus = defense_bonus
-        self.max_hp_bonus = max_hp_bonus
-
-        self.slot = slot
-        self.is_equipped = False
-
-    def toggle_equip(self):  #toggle equip/dequip status
-        if self.is_equipped:
-            self.dequip()
-        else:
-            self.equip()
-
-    def equip(self):
-        #if the slot is already being used, dequip whatever is there first
-        old_equipment = get_equipped_in_slot(self.slot)
-        if old_equipment is not None:
-            old_equipment.dequip()
-
-        #equip object and show a message about it
-        self.is_equipped = True
-        message('Equipped ' + self.owner.name + ' on ' + self.slot + '.', libtcod.light_green)
-
-    def dequip(self):
-        #dequip object and show a message about it
-        if not self.is_equipped: return
-        self.is_equipped = False
-        message('Dequipped ' + self.owner.name + ' from ' + self.slot + '.', libtcod.light_yellow)
-
 def is_blocked(x, y):
     #first test the map tile
     if map[x][y].blocked:
@@ -197,27 +124,6 @@ def render_all():
     print "here"
     libtcod.console_wait_for_keypress(True)
     map.draw()
-
-def player_move_or_attack(dx, dy):
-    global fov_recompute
-
-    #the coordinates the player is moving to/attacking
-    x = player.x + dx
-    y = player.y + dy
-
-    #try to find an attackable object there
-    target = None
-    for object in objects:
-        if object.fighter and object.x == x and object.y == y:
-            target = object
-            break
-
-    #attack if target found, move otherwise
-    if target is not None:
-        player.fighter.attack(target)
-    else:
-        player.move(dx, dy)
-        fov_recompute = True
 
 def menu(header, options, width):
     if len(options) > 26: raise ValueError('Cannot have a menu with more than 26 options.')
@@ -260,25 +166,6 @@ def menu(header, options, width):
     index = key.c - ord('a')
     if index >= 0 and index < len(options): return index
     return None
-
-def inventory_menu(header):
-    #show a menu with each item of the inventory as an option
-    if len(inventory) == 0:
-        options = ['Inventory is empty.']
-    else:
-        options = []
-        for item in inventory:
-            text = item.name
-            #show additional information, in case it's equipped
-            if item.equipment and item.equipment.is_equipped:
-                text = text + ' (on ' + item.equipment.slot + ')'
-            options.append(text)
-
-    index = menu(header, options, INVENTORY_WIDTH)
-
-    #if an item was chosen, return it
-    if index is None or len(inventory) == 0: return None
-    return inventory[index].item
 
 def msgbox(text, width=50):
     menu(text, [], width)  #use menu() as a sort of "message box"
@@ -351,10 +238,48 @@ def parsemap(file):
     height = int(f.readline())
     f.readline()
     tiles = []
+    expanded_2d = []
     for x in range (height):
-        z = list(f.readline())
-        del z[-1]
-        tiles.append(z)
+        z = (f.readline()).split()
+        # the maps are run-length encoded, we want to decompress and store in expanded
+        expanded = []
+        for element in z:
+            asterisk = element.find('*')
+            # if the asterisk isn't found, we just want to add 1 copy of this tile
+            if asterisk == -1:
+                expanded.append(element)
+            else:
+                # gets the number after the asterisk
+                number = int(element[asterisk+1:])
+                for n in range(number):
+                    # removes the multiplication tail
+                    element_cleaned = element[:asterisk]
+                    # adds that block multiple times
+                    expanded.append(element_cleaned)
+        expanded_2d.append(expanded)
+    print expanded_2d
+
+    for x in range(width):
+        tilerow = []
+        for y in range(height):
+            path = "data/tiles/" + expanded_2d[y][x] + ".txt"
+            f2 = open(path, "r")
+            char = (f2.readline())[0]
+            red = int(f2.readline())
+            green = int(f2.readline())
+            blue = int(f2.readline())
+            blocking = f2.readline()
+            f2.close()
+            if blocking == "blocking: yes" or blocking == "yes":
+                blocking = True
+            else:
+                blocking = False
+            tile = Tile(expanded_2d[y][x], char, red, green, blue, blocking)
+            tilerow.append(tile)
+        tiles.append(tilerow)
+    for y in range(height):
+        for x in range(width):
+            print tiles[x][y].name
     f.close()
     map = Map(width, height, tiles)
 
@@ -362,7 +287,8 @@ def new_game():
     global player, inventory, party, game_state, map
 
     parsemap("data/maps/map.txt")
-
+    #libtcod.console_wait_for_keypress(True)
+    #exit
     #create object representing the player
     player = Object(0, 0, '@', 'player', libtcod.white, blocks=True)
 
