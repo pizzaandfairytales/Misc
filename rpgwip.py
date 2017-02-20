@@ -16,6 +16,9 @@ SCREEN_HEIGHT = 12
 MAP_WIDTH = 15
 MAP_HEIGHT = 12
 
+view_x = 10
+view_y = 9
+
 LIMIT_FPS = 20  #20 frames-per-second maximum
 
 class Map:
@@ -25,11 +28,19 @@ class Map:
         self.tiles = tiles
         self.warps = warps
 
-    def draw(self):
-        for x in range(self.width):
-            for y in range(self.height):
-                libtcod.console_set_default_foreground(con, self.tiles[x][y].color)
-                libtcod.console_put_char(con, x, y, self.tiles[x][y].char, libtcod.BKGND_NONE)
+    def draw(self, player_x, player_y, view_x, view_y):
+        horizontal = int(view_x / 2)
+        vertical = int(view_y / 2)
+        for y in range(view_y):
+            for x in range(view_x):
+                if ((player_x - horizontal) + x < 0) or ((player_x - horizontal) + x >= self.width) or ((player_y - vertical) + y < 0) or ((player_y - vertical) + y >= self.height):
+                    tile = Tile("blank", ' ', 0, 0, 0, False)
+                else:
+                    col = (player_x - horizontal) + x
+                    row = (player_y - vertical) + y
+                    tile = self.tiles[col][row]
+                libtcod.console_set_default_foreground(con, tile.color)
+                libtcod.console_put_char(con, x, y, tile.char, libtcod.BKGND_NONE)
 
 class Tile:
     #a tile of the map and its properties
@@ -74,7 +85,9 @@ class Object:
     def draw(self):
         #set the color and then draw the character that represents this object at its position
         libtcod.console_set_default_foreground(con, self.color)
-        libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
+        # This is for a non-centered character
+        #libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
+        libtcod.console_put_char(con, view_x/2, view_y/2, self.char, libtcod.BKGND_NONE)
 
     def warp(self):
         dest = ""
@@ -111,7 +124,7 @@ def oob(x, y):
 def render_all():
     global map, player
     player.clear()
-    map.draw()
+    map.draw(player.x, player.y, view_x, view_y)
     player.draw()
     libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
 
@@ -188,8 +201,6 @@ def parsemap(file):
     for x in range(numWarps):
         z = (f.readline()).split()
         warp = Warp(z[0], int(z[2]), int(z[3]), int(z[5]), int(z[6]))
-        print z[2]
-        print z[3]
         warps.append(warp)
 
 
@@ -218,8 +229,8 @@ def play_game():
         if exit:
             break
 
-libtcod.console_set_custom_font('arial12x12.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
-libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'RPG', False)
+libtcod.console_set_custom_font('dejavu16x16_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
+libtcod.console_init_root(view_x, view_y, 'RPG', False)
 libtcod.sys_set_fps(LIMIT_FPS)
 con = libtcod.console_new(MAP_WIDTH, MAP_HEIGHT)
 #main_menu()
