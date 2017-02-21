@@ -149,11 +149,33 @@ def handle_keys():
         elif key.vk == libtcod.KEY_RIGHT:
             player.dir = "right"
             player.move(1, 0)
+        elif key.vk == libtcod.KEY_ENTER:
+            choice = menu("Menu", ["Save", "Load", "Cancel"])
+            if choice == 0:
+                save_game()
+            if choice == 1:
+                try:
+                    load_game()
+                except:
+                    display_text("No save file found!")
         elif chr(key.c) == '.':
             player.warp()
         elif chr(key.c) == 'z':
             player.interact()
         #print player.dir
+
+def save_game():
+    f = shelve.open('save', 'n')
+    f['map'] = map
+    f['player'] = player
+    f.close()
+
+def load_game():
+    global map, player
+    f = shelve.open('save', 'r')
+    map = f['map']
+    player = f['player']
+    f.close()
 
 def clearscreen():
     for x in range(view_x):
@@ -229,7 +251,7 @@ def skipline(file, numlines=1):
     for x in range(numlines):
         file.readline()
 
-def select(caption, options):
+def menu(caption, options):
     clearscreen()
     libtcod.console_set_default_foreground(con, text_color)
     page = 0
@@ -401,7 +423,6 @@ def new_game():
     con = libtcod.console_new(view_x, view_y)
     libtcod.console_set_default_background(con,libtcod.Color(red, green, blue))
     display_text(welcome_text)
-    select("testmenu", ["opt1", "opt2", "opt3", "opt4", "opt5", "opt6", "opt7", "opt8", "opt9", "opt10", "opt11", "opt12"])
     # Initialize the player -
     player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True, dir="up")
     game_state = 'playing'
