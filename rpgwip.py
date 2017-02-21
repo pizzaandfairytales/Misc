@@ -23,7 +23,7 @@ class Map:
         for y in range(view_y):
             for x in range(view_x):
                 if ((player_x - horizontal) + x < 0) or ((player_x - horizontal) + x >= self.width) or ((player_y - vertical) + y < 0) or ((player_y - vertical) + y >= self.height):
-                    tile = Tile("blank", ' ', 0, 0, 0, False)
+                    tile = Tile("blank", ' ', 0, 0, 0, False, [])
                 else:
                     col = (player_x - horizontal) + x
                     row = (player_y - vertical) + y
@@ -33,11 +33,12 @@ class Map:
 
 class Tile:
     #a tile of the map and its properties
-    def __init__(self, name, char, red, green, blue, blocking):
+    def __init__(self, name, char, red, green, blue, blocking, interact_text):
         self.name = name
         self.char = char
         self.color = libtcod.Color(red, green, blue)
         self.blocking = blocking
+        self.interact_text = interact_text
 
 class Warp:
     def __init__(self, dest, origin_x, origin_y, dest_x, dest_y):
@@ -50,13 +51,14 @@ class Warp:
 class Object:
     #this is a generic object: the player, a monster, an item, the stairs...
     #it's always represented by a character on screen.
-    def __init__(self, x, y, char, name, color, blocks=False):
+    def __init__(self, x, y, char, name, color, blocks=False, dir="none"):
         self.x = x
         self.y = y
         self.char = char
         self.name = name
         self.color = color
         self.blocks = blocks
+        self.dir = dir
 
     def move(self, dx, dy):
         #move by the given amount, if the destination is not blocked
@@ -93,6 +95,22 @@ class Object:
             self.x = dest_x
             self.y = dest_y
 
+    def interact(self):
+        dest_x = self.x
+        dest_y = self.y
+        if self.dir == "up":
+            dest_y -= 1
+        elif self.dir == "down":
+            dest_y += 1
+        elif self.dir == "left":
+            dest_x -= 1
+        elif self.dir == "right":
+            dest_x += 1
+        if not oob(dest_x, dest_y):
+            interact_list = map.tiles[dest_x][dest_y].interact_text
+            if interact_list != []:
+                display_text(interact_list[0])
+
     def clear(self):
         #erase the character that represents this object
         libtcod.console_put_char(con, self.x, self.y, ' ', libtcod.BKGND_SET)
@@ -121,15 +139,22 @@ def handle_keys():
         return True  #exit game
     if game_state == 'playing':
         if key.vk == libtcod.KEY_UP:
+            player.dir = "up"
             player.move(0, -1)
         elif key.vk == libtcod.KEY_DOWN:
+            player.dir = "down"
             player.move(0, 1)
         elif key.vk == libtcod.KEY_LEFT:
+            player.dir = "left"
             player.move(-1, 0)
         elif key.vk == libtcod.KEY_RIGHT:
+            player.dir = "right"
             player.move(1, 0)
         elif chr(key.c) == '.':
             player.warp()
+        elif chr(key.c) == 'z':
+            player.interact()
+        #print player.dir
 
 def clearscreen():
     for x in range(view_x):
@@ -139,6 +164,7 @@ def clearscreen():
 def parsemap(file):
     global map
     f = open ((game_dir + "/maps/" + file), "r")
+    skipline(f)
     width = int(f.readline())
     height = int(f.readline())
     skipline(f)
@@ -167,17 +193,25 @@ def parsemap(file):
         for y in range(height):
             path = game_dir + "/tiles/" + expanded_2d[y][x] + ".txt"
             f2 = open(path, "r")
+            skipline(f2)
             char = (f2.readline())[0]
+            skipline(f2)
             red = int(f2.readline())
             green = int(f2.readline())
             blue = int(f2.readline())
+            skipline(f2)
             blocking = f2.readline()
+            skipline(f2)
+            interact_num = int(f2.readline())
+            interact_text = []
+            for a in range (interact_num):
+                interact_text.append(f2.readline())
             f2.close()
-            if blocking == "blocking: yes" or blocking == "yes":
+            if blocking == "yes" or blocking == "yes\n":
                 blocking = True
             else:
                 blocking = False
-            tile = Tile(expanded_2d[y][x], char, red, green, blue, blocking)
+            tile = Tile(expanded_2d[y][x], char, red, green, blue, blocking, interact_text)
             tilerow.append(tile)
         tiles.append(tilerow)
     skipline(f)
@@ -208,11 +242,17 @@ def display_text(text):
     y_pos = 0
     wordlist = text.split()
     for word in wordlist:
-        print word
-        print "Length is:" + str(len(word))
         # If the word can fit on the current line, display it
-        if len(word) < view_x - x_pos:
-            print "... and view_x + x_pos = " + str(view_x + x_pos) + ", so it can fit!"
+        if word == "\\":
+            y_pos += 2
+            x_pos = 0
+            if y_pos == view_y:
+                libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
+                libtcod.console_flush()
+                key = libtcod.console_wait_for_keypress(True)
+                clearscreen()
+                y_pos = 0
+        elif len(word) <= view_x - x_pos:
             for char in word:
                 libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
                 x_pos += 1
@@ -221,17 +261,14 @@ def display_text(text):
                 x_pos += 1
         # If the word is too big to fit on even a blank line, we'll need to break it up across several using dashes.
         elif len(word) > view_x:
-            print "... is too big!"
             curr = 0
             while curr < len(word):
                 if x_pos < view_x - 1:
                     libtcod.console_put_char(con, x_pos, y_pos, word[curr], libtcod.BKGND_SET)
-                    print word[curr]
                     x_pos += 1
                     curr += 1
                 else:
                     libtcod.console_put_char(con, x_pos, y_pos, '-', libtcod.BKGND_SET)
-                    print "-"
                     y_pos += 1
                     x_pos = 0
                 # If we've used up the whole screen, wait for the user to press a key, then start a new page
@@ -271,20 +308,18 @@ def display_text(text):
     libtcod.console_flush()
     key = libtcod.console_wait_for_keypress(True)
 
-
-
-
 def new_game():
     global player, inventory, party, game_state, map, view_x, view_y, con, game_dir, text_color
-    games_list = []
-    f = open("./GAMES_LIST.txt", "r")
-    for line in f:
-        games_list.append(line[:-1])
+    f = open("./init.txt", "r")
+    skipline(f)
+    game_dir = (f.readline())
     f.close()
-    game_dir = games_list[0]
     # We need to get the screen size (and eventually we'll get other game data here as well)
     f = open(game_dir + "/init.txt", "r")
+    # game name is line 2 of these, in case I want to do something with it
     skipline(f, 3)
+    welcome_text = f.readline()
+    skipline(f)
     red = int(f.readline())
     green = int(f.readline())
     blue = int(f.readline())
@@ -306,9 +341,9 @@ def new_game():
     libtcod.sys_set_fps(LIMIT_FPS)
     con = libtcod.console_new(view_x, view_y)
     libtcod.console_set_default_background(con,libtcod.Color(red, green, blue))
-    display_text("Welcome to the test game! adsafsdkjfhskjfsdkfg sfg ska aksd fksfjds asdkf sfie fsfbsakjbfjsb fsfdadf ")
+    display_text(welcome_text)
     # Initialize the player -
-    player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True)
+    player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True, dir="up")
     game_state = 'playing'
     inventory = []
 
