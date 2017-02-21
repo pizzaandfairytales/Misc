@@ -2,7 +2,6 @@
 
 import libtcodpy as libtcod
 import math
-import textwrap
 import shelve
 
 view_x = 10
@@ -230,14 +229,74 @@ def skipline(file, numlines=1):
     for x in range(numlines):
         file.readline()
 
-# Unfinished
 def select(caption, options):
     clearscreen()
-    index = 0
+    libtcod.console_set_default_foreground(con, text_color)
+    page = 0
+    choice = -1
+    # The caption takes up a row, and the next-previous page options also each take 1, hence the 3
+    options_per_page = view_y - 3
+    # We want to select options with the num keys, so, saving room for a next and previous key, we can have at most 8 options per page
+    if options_per_page > 8:
+        options_per_page = 8
+    num_pages = int(math.ceil(len(options) / options_per_page))
+    while choice == -1:
+        x_pos = 0
+        y_pos = 0
+        clearscreen()
+        for char in caption:
+            libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
+            x_pos += 1
+        y_pos += 1
+        x_pos = 0
+        for x in range(options_per_page):
+            current_option = page*options_per_page + x
+            if not current_option >= len(options):
+                libtcod.console_put_char(con, x_pos, y_pos, str(x + 1), libtcod.BKGND_SET)
+                x_pos += 1
+                libtcod.console_put_char(con, x_pos, y_pos, ' ', libtcod.BKGND_SET)
+                x_pos += 1
+                for char in options[page*options_per_page + x]:
+                    libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
+                    x_pos += 1
+            y_pos += 1
+            x_pos = 0
+        if page != 0:
+            y_pos = view_y - 2
+            libtcod.console_put_char(con, x_pos, y_pos, '9', libtcod.BKGND_SET)
+            x_pos += 1
+            libtcod.console_put_char(con, x_pos, y_pos, ' ', libtcod.BKGND_SET)
+            x_pos += 1
+            for char in "Prev":
+                libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
+                x_pos += 1
+        if page < num_pages:
+            x_pos = 0
+            y_pos = view_y - 1
+            libtcod.console_put_char(con, x_pos, y_pos, '0', libtcod.BKGND_SET)
+            x_pos += 1
+            libtcod.console_put_char(con, x_pos, y_pos, ' ', libtcod.BKGND_SET)
+            x_pos += 1
+            for char in "Next":
+                libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
+                x_pos += 1
+        libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
+        libtcod.console_flush()
+        key = libtcod.console_wait_for_keypress(True)
+        if int(key.c) >=48 and int(key.c) <= 57:
+            if int(chr(key.c)) > 0 and int(chr(key.c)) <= options_per_page:
+                try_choice = page*options_per_page + (int(chr(key.c)) - 1)
+                if try_choice < len(options):
+                    choice = try_choice
+            elif int(chr(key.c)) == 9 and page != 0:
+                page -= 1
+            elif int(chr(key.c)) == 0 and page < num_pages - 1:
+                page += 1
+    return choice
 
 def display_text(text):
     clearscreen()
-    libtcod.console_set_default_foreground(con, libtcod.Color(128,128,128))
+    libtcod.console_set_default_foreground(con, text_color)
     x_pos = 0
     y_pos = 0
     wordlist = text.split()
@@ -342,6 +401,7 @@ def new_game():
     con = libtcod.console_new(view_x, view_y)
     libtcod.console_set_default_background(con,libtcod.Color(red, green, blue))
     display_text(welcome_text)
+    select("testmenu", ["opt1", "opt2", "opt3", "opt4", "opt5", "opt6", "opt7", "opt8", "opt9", "opt10", "opt11", "opt12"])
     # Initialize the player -
     player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True, dir="up")
     game_state = 'playing'
@@ -358,6 +418,6 @@ def play_game():
         if exit:
             break
 
-
+# Program entry point:
 new_game()
 play_game()
