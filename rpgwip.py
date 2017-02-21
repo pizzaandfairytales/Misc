@@ -1,20 +1,9 @@
 #!/usr/bin/python
 
-#notes: maybe leave formulas up to init.txt
-
 import libtcodpy as libtcod
 import math
 import textwrap
 import shelve
-
-
-#actual size of the window
-SCREEN_WIDTH = 15
-SCREEN_HEIGHT = 12
-
-#size of the map
-MAP_WIDTH = 15
-MAP_HEIGHT = 12
 
 view_x = 10
 view_y = 9
@@ -40,7 +29,7 @@ class Map:
                     row = (player_y - vertical) + y
                     tile = self.tiles[col][row]
                 libtcod.console_set_default_foreground(con, tile.color)
-                libtcod.console_put_char(con, x, y, tile.char, libtcod.BKGND_NONE)
+                libtcod.console_put_char(con, x, y, tile.char, libtcod.BKGND_SET)
 
 class Tile:
     #a tile of the map and its properties
@@ -85,9 +74,7 @@ class Object:
     def draw(self):
         #set the color and then draw the character that represents this object at its position
         libtcod.console_set_default_foreground(con, self.color)
-        # This is for a non-centered character
-        #libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
-        libtcod.console_put_char(con, view_x/2, view_y/2, self.char, libtcod.BKGND_NONE)
+        libtcod.console_put_char(con, view_x/2, view_y/2, self.char, libtcod.BKGND_SET)
 
     def warp(self):
         dest = ""
@@ -108,7 +95,7 @@ class Object:
 
     def clear(self):
         #erase the character that represents this object
-        libtcod.console_put_char(con, self.x, self.y, ' ', libtcod.BKGND_NONE)
+        libtcod.console_put_char(con, self.x, self.y, ' ', libtcod.BKGND_SET)
 
 def is_blocked(x, y):
     #first test the map tile
@@ -126,7 +113,7 @@ def render_all():
     player.clear()
     map.draw(player.x, player.y, view_x, view_y)
     player.draw()
-    libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
+    libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
 
 def handle_keys():
     key = libtcod.console_wait_for_keypress(True)
@@ -145,16 +132,16 @@ def handle_keys():
             player.warp()
 
 def clearscreen():
-    for x in range(SCREEN_WIDTH):
-        for y in range(SCREEN_HEIGHT):
-            libtcod.console_put_char(con, x, y, ' ', libtcod.BKGND_NONE)
+    for x in range(view_x):
+        for y in range(view_y):
+            libtcod.console_put_char(con, x, y, ' ', libtcod.BKGND_SET)
 
 def parsemap(file):
     global map
-    f = open (("./data/maps/" + file), "r")
+    f = open ((game_dir + "/maps/" + file), "r")
     width = int(f.readline())
     height = int(f.readline())
-    f.readline()
+    skipline(f)
     tiles = []
     expanded_2d = []
     for x in range (height):
@@ -175,11 +162,10 @@ def parsemap(file):
                     # adds that block multiple times
                     expanded.append(element_cleaned)
         expanded_2d.append(expanded)
-
     for x in range(width):
         tilerow = []
         for y in range(height):
-            path = "./data/tiles/" + expanded_2d[y][x] + ".txt"
+            path = game_dir + "/tiles/" + expanded_2d[y][x] + ".txt"
             f2 = open(path, "r")
             char = (f2.readline())[0]
             red = int(f2.readline())
@@ -194,45 +180,149 @@ def parsemap(file):
             tile = Tile(expanded_2d[y][x], char, red, green, blue, blocking)
             tilerow.append(tile)
         tiles.append(tilerow)
-
-    f.readline()
+    skipline(f)
     warps = []
     numWarps = int(f.readline())
     for x in range(numWarps):
         z = (f.readline()).split()
         warp = Warp(z[0], int(z[2]), int(z[3]), int(z[5]), int(z[6]))
         warps.append(warp)
-
-
     f.close()
     map = Map(width, height, tiles, warps)
 
+# I made this function just to make it clearer what's going on when I call readline but don't store the value.
+# This will also make it easier to find / remove those calls, if I decide to remove comment lines from the file formats.
+def skipline(file, numlines=1):
+    for x in range(numlines):
+        file.readline()
+
+# Unfinished
+def select(caption, options):
+    clearscreen()
+    index = 0
+
+def display_text(text):
+    clearscreen()
+    libtcod.console_set_default_foreground(con, libtcod.Color(128,128,128))
+    x_pos = 0
+    y_pos = 0
+    wordlist = text.split()
+    for word in wordlist:
+        print word
+        print "Length is:" + str(len(word))
+        # If the word can fit on the current line, display it
+        if len(word) < view_x - x_pos:
+            print "... and view_x + x_pos = " + str(view_x + x_pos) + ", so it can fit!"
+            for char in word:
+                libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
+                x_pos += 1
+            if x_pos < view_x - 1:
+                libtcod.console_put_char(con, x_pos, y_pos, ' ', libtcod.BKGND_SET)
+                x_pos += 1
+        # If the word is too big to fit on even a blank line, we'll need to break it up across several using dashes.
+        elif len(word) > view_x:
+            print "... is too big!"
+            curr = 0
+            while curr < len(word):
+                if x_pos < view_x - 1:
+                    libtcod.console_put_char(con, x_pos, y_pos, word[curr], libtcod.BKGND_SET)
+                    print word[curr]
+                    x_pos += 1
+                    curr += 1
+                else:
+                    libtcod.console_put_char(con, x_pos, y_pos, '-', libtcod.BKGND_SET)
+                    print "-"
+                    y_pos += 1
+                    x_pos = 0
+                # If we've used up the whole screen, wait for the user to press a key, then start a new page
+                if y_pos == view_y:
+                    libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
+                    libtcod.console_flush()
+                    key = libtcod.console_wait_for_keypress(True)
+                    clearscreen()
+                    y_pos = 0
+            if x_pos < view_x - 1:
+                libtcod.console_put_char(con, x_pos, y_pos, ' ', libtcod.BKGND_SET)
+                x_pos += 1
+        # The last option is a word that can't fit on the current line, but could fit on an empty one.
+        # In that case, we want to go to a new line (or new page if needed), then copy the logic from the "it already fits" case.
+        else:
+            # newline
+            y_pos += 1
+            if y_pos == view_y:
+                libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
+                libtcod.console_flush()
+                key = libtcod.console_wait_for_keypress(True)
+                clearscreen()
+                y_pos = 0
+            x_pos = 0
+            for char in word:
+                libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
+                x_pos += 1
+            if x_pos < view_x - 1:
+                libtcod.console_put_char(con, x_pos, y_pos, ' ', libtcod.BKGND_SET)
+                x_pos += 1
+        # Uncomment these to make the player have to step through by word instead of by page.
+        #libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
+        #libtcod.console_flush()
+        #key = libtcod.console_wait_for_keypress(True)
+    # Finally, we want the player to press a key to exit the text.
+    libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
+    libtcod.console_flush()
+    key = libtcod.console_wait_for_keypress(True)
+
+
+
+
 def new_game():
-    global player, inventory, party, game_state, map
-
-    parsemap("map.txt")
-    #libtcod.console_wait_for_keypress(True)
-    #exit
-    #create object representing the player
-    player = Object(3, 5, '@', 'player', libtcod.Color(255,0,0), blocks=True)
-
+    global player, inventory, party, game_state, map, view_x, view_y, con, game_dir, text_color
+    games_list = []
+    f = open("./GAMES_LIST.txt", "r")
+    for line in f:
+        games_list.append(line[:-1])
+    f.close()
+    game_dir = games_list[0]
+    # We need to get the screen size (and eventually we'll get other game data here as well)
+    f = open(game_dir + "/init.txt", "r")
+    skipline(f, 3)
+    red = int(f.readline())
+    green = int(f.readline())
+    blue = int(f.readline())
+    skipline(f)
+    text_color = libtcod.Color(int(f.readline()), int(f.readline()), int(f.readline()))
+    skipline(f)
+    view_x = int(f.readline())
+    view_y = int(f.readline())
+    skipline(f)
+    map = (f.readline())[:-1]
+    skipline(f)
+    start_x = int(f.readline())
+    start_y = int(f.readline())
+    f.close()
+    parsemap(map)
+    # Boilerplate to set up the window
+    libtcod.console_set_custom_font('dejavu16x16_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
+    libtcod.console_init_root(view_x, view_y, 'RPG', False)
+    libtcod.sys_set_fps(LIMIT_FPS)
+    con = libtcod.console_new(view_x, view_y)
+    libtcod.console_set_default_background(con,libtcod.Color(red, green, blue))
+    display_text("Welcome to the test game! adsafsdkjfhskjfsdkfg sfg ska aksd fksfjds asdkf sfie fsfbsakjbfjsb fsfdadf ")
+    # Initialize the player -
+    player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True)
     game_state = 'playing'
     inventory = []
 
 def play_game():
-    #main loop
+    # Game loop
     while not libtcod.console_is_window_closed():
-        #render the screen
+        # Draw the screen
         render_all()
         libtcod.console_flush()
+        # Player input
         exit = handle_keys()
         if exit:
             break
 
-libtcod.console_set_custom_font('dejavu16x16_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
-libtcod.console_init_root(view_x, view_y, 'RPG', False)
-libtcod.sys_set_fps(LIMIT_FPS)
-con = libtcod.console_new(MAP_WIDTH, MAP_HEIGHT)
-#main_menu()
+
 new_game()
 play_game()
