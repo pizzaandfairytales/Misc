@@ -150,7 +150,7 @@ def handle_keys():
             player.dir = "right"
             player.move(1, 0)
         elif key.vk == libtcod.KEY_ENTER:
-            choice = menu("Menu", ["Save", "Load", "Cancel"])
+            choice = menu("Menu", ["Save", "Load", "MainMenu" "Cancel"])
             if choice == 0:
                 save_game()
             if choice == 1:
@@ -158,6 +158,8 @@ def handle_keys():
                     load_game()
                 except:
                     display_text("No save file found!")
+            if choice == 2:
+                new_game()
         elif chr(key.c) == '.':
             player.warp()
         elif chr(key.c) == 'z':
@@ -422,11 +424,18 @@ def new_game():
     libtcod.sys_set_fps(LIMIT_FPS)
     con = libtcod.console_new(view_x, view_y)
     libtcod.console_set_default_background(con,libtcod.Color(red, green, blue))
-    display_text(welcome_text)
-    # Initialize the player -
-    player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True, dir="up")
+    continue_game = menu("File:", ["New", "Continue"])
+    if continue_game == 1:
+        try:
+            load_game()
+        except:
+            display_text("No save file found! Starting new game...")
+            continue_game = 0
+    if not continue_game:
+        display_text(welcome_text)
+        # Initialize the player -
+        player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True, dir="up")
     game_state = 'playing'
-    inventory = []
 
 def play_game():
     # Game loop
