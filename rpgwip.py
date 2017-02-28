@@ -3,18 +3,16 @@
 import libtcodpy as libtcod
 import math
 import shelve
-
-view_x = 10
-view_y = 9
-
-LIMIT_FPS = 20  #20 frames-per-second maximum
+from pygame import mixer
 
 class Map:
-    def __init__(self, width, height, tiles, warps):
+    def __init__(self, width, height, tiles, warps, music, triggers):
         self.width = width
         self.height = height
         self.tiles = tiles
         self.warps = warps
+        self.music = music
+        self.triggers = triggers
 
     def draw(self, player_x, player_y, view_x, view_y):
         horizontal = int(view_x / 2)
@@ -48,8 +46,6 @@ class Warp:
         self.dest_y = dest_y
 
 class Object:
-    #this is a generic object: the player, a monster, an item, the stairs...
-    #it's always represented by a character on screen.
     def __init__(self, x, y, char, name, color, blocks=False, dir="none"):
         self.x = x
         self.y = y
@@ -66,12 +62,6 @@ class Object:
                 self.x += dx
                 self.y += dy
 
-    def send_to_back(self):
-        #make this object be drawn first, so all others appear above it if they're in the same tile.
-        global objects
-        objects.remove(self)
-        objects.insert(0, self)
-
     def draw(self):
         #set the color and then draw the character that represents this object at its position
         libtcod.console_set_default_foreground(con, self.color)
@@ -81,6 +71,7 @@ class Object:
         dest = ""
         dest_x = 0
         dest_y = 0
+        old_music = map.music
         warp = False
         for item in map.warps:
             if item.origin_x == self.x and item.origin_y == self.y:
@@ -91,6 +82,10 @@ class Object:
         if warp:
             clearscreen()
             parsemap(dest)
+            if map.music != old_music:
+                    if map.music != "none":
+                        mixer.music.load(map.music)
+                        mixer.music.play(-1)
             self.x = dest_x
             self.y = dest_y
 
@@ -109,10 +104,68 @@ class Object:
             interact_list = map.tiles[dest_x][dest_y].interact_text
             if interact_list != []:
                 display_text(interact_list[0])
+            check_trigger(dest_x, dest_y, "interaction")
 
     def clear(self):
         #erase the character that represents this object
         libtcod.console_put_char(con, self.x, self.y, ' ', libtcod.BKGND_SET)
+
+class Player(Object):
+    def __init__(self, x, y, char, name, color, party, items, blocks=False, dir="none"):
+        Object.__init__(self, x, y, char, name, color, blocks, dir)
+        self.party = party
+        self.items = items
+
+class Monster:
+    def __init__(self, species, level, ev, iv, exp):
+        self.species = species
+        self.level = level
+        self.ev = ev
+        self.iv = iv
+        self.exp = exp
+        f = open("/monsters/" + species.lower() + ".txt")
+        skipline(13)
+        base_hp = f.readline()[1]
+        base_attack = f.readline()[1]
+        base_defense = f.readline()[1]
+        base_sp_atk = f.readline()[1]
+        base_sp_defense = f.readline()[1]
+        base_speed = f.readline()[1]
+        f.close()
+
+    def calc_stats():
+        self.hp = (((self.base_hp + self.iv[0])*2+(math.sqrt(self.ev[0])/4)*self.level)/100) + self.level + 10
+        self.attack = (((self.base_attack + self.iv[1]) * 2 + (math.sqrt(self.ev[1])/4)*self.level)/100) + 5
+        self.defense = (((self.base_defense + self.iv[2]) * 2 + (math.sqrt(self.ev[2])/4)*self.level)/100) + 5
+        self.sp_atk = (((elf.base_sp_atk + self.iv[3]) * 2 + (math.sqrt(self.ev[3])/4)*self.level)/100) + 5
+        self.sp_defense = (((self.base_sp_defense + self.iv[4]) * 2 + (math.sqrt(self.ev[4])/4)*self.level)/100) + 5
+        self.speed = (((elf.base_speed + self.iv[5]) * 2 + (math.sqrt(self.ev[5])/4)*self.level)/100) + 5
+
+class Trigger:
+    def __init__(self, x, y, style, action, argument):
+        self.x = x
+        self.y = y
+        self.action = action
+        self.argument = argument
+        self.style = style
+
+def trigger(action, argument):
+    if action == "display_text":
+        display_text(argument)
+    if action == "warp":
+        argumentList = argument.split()
+        warp_to(argumentList[0], int(argumentList[2]), int(argumentList[4]))
+
+def warp_to(map, x, y):
+    parsemap(map)
+    player.x = x
+    player.y = y
+
+def check_trigger(x, y, style):
+    for entry in map.triggers:
+        if entry.style == style:
+            if entry.x == x and entry.y == y:
+                trigger(entry.action, entry.argument)
 
 def is_blocked(x, y):
     #first test the map tile
@@ -133,6 +186,7 @@ def render_all():
     libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
 
 def handle_keys():
+    global music_paused
     key = libtcod.console_wait_for_keypress(True)
     if key.vk == libtcod.KEY_ESCAPE:
         return True  #exit game
@@ -150,7 +204,7 @@ def handle_keys():
             player.dir = "right"
             player.move(1, 0)
         elif key.vk == libtcod.KEY_ENTER:
-            choice = menu("Menu", ["Save", "Load", "MainMenu" "Cancel"])
+            choice = menu("Menu", ["Save", "Load", "MainMenu", "Cancel"])
             if choice == 0:
                 save_game()
             if choice == 1:
@@ -160,10 +214,25 @@ def handle_keys():
                     display_text("No save file found!")
             if choice == 2:
                 new_game()
-        elif chr(key.c) == '.':
+        elif chr(key.c) == 'x':
             player.warp()
         elif chr(key.c) == 'z':
             player.interact()
+        elif chr(key.c) == 'q':
+            vol = mixer.music.get_volume()
+            if vol >= .1:
+                mixer.music.set_volume(vol - .1)
+        elif chr(key.c) == 'w':
+            vol = mixer.music.get_volume()
+            if vol <= .9:
+                mixer.music.set_volume(vol + .1)
+        elif chr(key.c) == 'e':
+            if not music_paused:
+                mixer.music.pause()
+                music_paused = True
+            else:
+                mixer.music.unpause()
+                music_paused = False
         #print player.dir
 
 def save_game():
@@ -177,6 +246,9 @@ def load_game():
     f = shelve.open('save', 'r')
     map = f['map']
     player = f['player']
+    if map.music != "none":
+        mixer.music.load(map.music)
+        mixer.music.play(-1)
     f.close()
 
 def clearscreen():
@@ -244,8 +316,30 @@ def parsemap(file):
         z = (f.readline()).split()
         warp = Warp(z[0], int(z[2]), int(z[3]), int(z[5]), int(z[6]))
         warps.append(warp)
+    skipline(f)
+    song = (f.readline()).rstrip()
+    if song == "none":
+        song_path = song
+    else:
+        song_path = game_dir + "/sound/music/" + song
+    # Read Location Triggers
+    skipline(f)
+    triggers = []
+    numLocTriggers = int(f.readline())
+    for x in range (numLocTriggers):
+        trigger = (f.readline()).split()
+        triggerArg = f.readline()
+        triggers.append(Trigger(int(trigger[1]), int(trigger[3]), "location", trigger[5], triggerArg))
+    # Read Interaction Triggers
+    skipline(f)
+    interactTriggers = []
+    numInteractTriggers = int(f.readline())
+    for x in range (numInteractTriggers):
+        trigger = (f.readline()).split()
+        triggerArg = f.readline()
+        triggers.append(Trigger(int(trigger[1]), int(trigger[3]), "interaction", trigger[5], triggerArg))
     f.close()
-    map = Map(width, height, tiles, warps)
+    map = Map(width, height, tiles, warps, song_path, triggers)
 
 # I made this function just to make it clearer what's going on when I call readline but don't store the value.
 # This will also make it easier to find / remove those calls, if I decide to remove comment lines from the file formats.
@@ -264,15 +358,18 @@ def menu(caption, options):
     if options_per_page > 8:
         options_per_page = 8
     num_pages = int(math.ceil(len(options) / options_per_page))
+    # Until the user picks a valid menu option (not navigation)
     while choice == -1:
         x_pos = 0
         y_pos = 0
         clearscreen()
+        # Display menu caption at the top
         for char in caption:
             libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
             x_pos += 1
         y_pos += 1
         x_pos = 0
+        # Display a page of options
         for x in range(options_per_page):
             current_option = page*options_per_page + x
             if not current_option >= len(options):
@@ -285,6 +382,7 @@ def menu(caption, options):
                     x_pos += 1
             y_pos += 1
             x_pos = 0
+        # As long as we're not at the first page, we want to have a back button
         if page != 0:
             y_pos = view_y - 2
             libtcod.console_put_char(con, x_pos, y_pos, '9', libtcod.BKGND_SET)
@@ -294,6 +392,7 @@ def menu(caption, options):
             for char in "Prev":
                 libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
                 x_pos += 1
+        # As long as we're not at the last page, we want to have a forwards button
         if page < num_pages:
             x_pos = 0
             y_pos = view_y - 1
@@ -304,16 +403,23 @@ def menu(caption, options):
             for char in "Next":
                 libtcod.console_put_char(con, x_pos, y_pos, char, libtcod.BKGND_SET)
                 x_pos += 1
+        # Render all of that to the screen
         libtcod.console_blit(con, 0, 0, view_x, view_y, 0, 0, 0)
         libtcod.console_flush()
+        # Wait for input
         key = libtcod.console_wait_for_keypress(True)
-        if int(key.c) >=48 and int(key.c) <= 57:
+        # These are the ascii codes for 1-9
+        if int(key.c) >= 48 and int(key.c) <= 57:
+            # If the inputted number is a valid option:
             if int(chr(key.c)) > 0 and int(chr(key.c)) <= options_per_page:
                 try_choice = page*options_per_page + (int(chr(key.c)) - 1)
                 if try_choice < len(options):
+                    # Then the user has successfully made a choice.
                     choice = try_choice
+            # Navigate to previous page
             elif int(chr(key.c)) == 9 and page != 0:
                 page -= 1
+            # Navigate to next page
             elif int(chr(key.c)) == 0 and page < num_pages - 1:
                 page += 1
     return choice
@@ -392,7 +498,8 @@ def display_text(text):
     key = libtcod.console_wait_for_keypress(True)
 
 def new_game():
-    global player, inventory, party, game_state, map, view_x, view_y, con, game_dir, text_color
+    global player, inventory, party, game_state, map, view_x, view_y, con, game_dir, text_color, music_paused
+    music_paused = False
     f = open("./init.txt", "r")
     skipline(f)
     game_dir = (f.readline())
@@ -412,19 +519,23 @@ def new_game():
     view_x = int(f.readline())
     view_y = int(f.readline())
     skipline(f)
-    map = (f.readline())[:-1]
+    map = (f.readline()).rstrip()
     skipline(f)
     start_x = int(f.readline())
     start_y = int(f.readline())
+    skipline(f)
+    player_color = libtcod.Color(int(f.readline()), int(f.readline()), int(f.readline()))
     f.close()
     parsemap(map)
     # Boilerplate to set up the window
+    LIMIT_FPS = 20  #20 frames-per-second maximum
     libtcod.console_set_custom_font('dejavu16x16_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
     libtcod.console_init_root(view_x, view_y, 'RPG', False)
     libtcod.sys_set_fps(LIMIT_FPS)
     con = libtcod.console_new(view_x, view_y)
     libtcod.console_set_default_background(con,libtcod.Color(red, green, blue))
     continue_game = menu("File:", ["New", "Continue"])
+    mixer.init()
     if continue_game == 1:
         try:
             load_game()
@@ -434,7 +545,12 @@ def new_game():
     if not continue_game:
         display_text(welcome_text)
         # Initialize the player -
-        player = Object(start_x, start_y, '@', 'player', libtcod.Color(255,0,0), blocks=True, dir="up")
+        player = Player(start_x, start_y, '@', 'player', player_color, [], [], blocks=True, dir="up")
+    print map.music
+    if map.music != "none":
+        mixer.music.load(map.music)
+        mixer.music.set_volume(.5)
+        mixer.music.play(-1)
     game_state = 'playing'
 
 def play_game():
@@ -443,10 +559,12 @@ def play_game():
         # Draw the screen
         render_all()
         libtcod.console_flush()
+        # Check for Location Trigger activation
         # Player input
         exit = handle_keys()
         if exit:
             break
+        check_trigger(player.x, player.y, "location")
 
 # Program entry point:
 new_game()
