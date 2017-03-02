@@ -33,10 +33,51 @@ libtcod.console_init_root(170, 65, 'TIS-100 Clone', False)
 libtcod.sys_set_fps(LIMIT_FPS)
 
 class Node:
-    def __init__(self, x, y, disabled=False):
+    def __init__(self, x, y, number, disabled=False):
+        self.number = number
         self.x = x
         self.y = y
         self.disabled = disabled
+        self.text = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+        self.cursorPosX = 0
+        self.cursorPosY = 0
+        self.cursorSec = 0
+
+    def isTileMine(self, x, y):
+        if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
+            return True
+        return False
+
+    def click(self, x, y):
+        global focus
+        libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
+        focus = self.number
+        relativeX = x - (self.x + 1)
+        relativeY = y - (self.y + 1)
+        if relativeY < 1:
+            self.cursorPosY = 1
+        elif relativeY > 14:
+            self.cursorPosY = 14
+        else:
+            if self.text[relativeY] == "":
+                last = 0
+                for z in range (relativeY):
+                    if z != "":
+                        last = z
+                self.cursorPosY = last
+            else:
+                self.cursorPosY = relativeY
+        if relativeX < 1:
+            self.cursorPosX = 1
+        elif relativeX > 18:
+            self.cursorPosX = 18
+        else:
+            if len(self.text[self.cursorPosY]) <= relativeX:
+                self.cursorPosX = len(self.text[self.cursorPosX]) + 1
+            else:
+                self.cursorPosX = relativeX
+
+
 
     def draw(self):
         box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
@@ -73,6 +114,10 @@ class Node:
             if row >= 27 + self.x:
                 row = self.x
                 col += 1
+        if secondsElapsed % 2 and focus == self.number and not self.disabled:
+            libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.white, flag=libtcod.BKGND_SET)
+        else:
+            libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
 
 
 
@@ -110,31 +155,43 @@ def drawConsoleBox(x, y):
         libtcod.console_put_char(0, x+6, y+z+1, 186, libtcod.BKGND_NONE)
 
 def initNodes():
-    global nodes
+    global nodes, focus
+    focus = 0
     nodes = []
+    number = 1
     for y in [5, 24, 43]:
         for x in [50, 80, 110, 140]:
             if y == 24:
                 disabled = True
             else:
                 disabled = False
-            nodes.append(Node(x, y, disabled))
-    for element in nodes:
-        element.draw()
+            nodes.append(Node(x, y, number, disabled))
+            number += 1
     drawInstructionBox(2, 4)
     drawConsoleBox(2, 17)
 
 def play_game():
-    global key, mouse
+    global key, mouse, nodes, secondsElapsed
     player_action = None
     mouse = libtcod.Mouse()
     key = libtcod.Key()
     while not libtcod.console_is_window_closed():
-        initNodes()
-        #libtcod.console_put_char(0, 5, 5, 200, libtcod.BKGND_NONE)
+        secondsElapsed = int(libtcod.sys_elapsed_seconds())
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+        if mouse.lbutton_pressed:
+            for node in nodes:
+                x = mouse.cx
+                y = mouse.cy
+                if node.isTileMine(x, y):
+                    node.click(x, y)
+        if key.vk == libtcod.KEY_ESCAPE:
+            return 0
+        for element in nodes:
+            element.draw()
         libtcod.console_flush()
 
+def init():
+    initNodes()
 
-
+init()
 play_game()
