@@ -32,32 +32,49 @@ libtcod.console_set_custom_font('consolas8x8_gs_tc.png', libtcod.FONT_TYPE_GREYS
 libtcod.console_init_root(170, 65, 'TIS-100 Clone', False)
 libtcod.sys_set_fps(LIMIT_FPS)
 
-def drawBox(x, y):
-    box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
-            200, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 202, 205, 205, 205, 205, 205, 188,
-            ]
-    row = x
-    col = y
-    for char in box:
-        libtcod.console_put_char(0, row, col, char, libtcod.BKGND_NONE)
-        row += 1
-        if row >= 27 + x:
-            row = x
-            col += 1
+class Node:
+    def __init__(self, x, y, disabled=False):
+        self.x = x
+        self.y = y
+        self.disabled = disabled
+
+    def draw(self):
+        box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                200, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 202, 205, 205, 205, 205, 205, 188,
+                ]
+        row = self.x
+        col = self.y
+        for char in box:
+            if self.disabled:
+                libtcod.console_set_default_foreground(0, libtcod.red)
+                for z in range(13):
+                    libtcod.console_put_char(0, self.x + z + 4, self.y + 5, 176, libtcod.BKGND_NONE)
+                    libtcod.console_put_char(0, self.x + z + 4, self.y + 10, 176, libtcod.BKGND_NONE)
+                libtcod.console_print_ex(0, self.x + 4, self.y + 7, libtcod.BKGND_NONE, libtcod.LEFT, "COMMUNICATION")
+                libtcod.console_print_ex(0, self.x + 7, self.y + 8, libtcod.BKGND_NONE, libtcod.LEFT, "FAILURE")
+            else:
+                libtcod.console_set_default_foreground(0, libtcod.white)
+            libtcod.console_put_char(0, row, col, char, libtcod.BKGND_NONE)
+            row += 1
+            if row >= 27 + self.x:
+                row = self.x
+                col += 1
+
+
 
 def drawInstructionBox(x, y):
     libtcod.console_put_char(0, x, y, 201, libtcod.BKGND_NONE)
@@ -92,19 +109,18 @@ def drawConsoleBox(x, y):
         libtcod.console_put_char(0, x, y+z+1, 186, libtcod.BKGND_NONE)
         libtcod.console_put_char(0, x+6, y+z+1, 186, libtcod.BKGND_NONE)
 
-def drawBoxes():
-    drawBox(50, 5)
-    drawBox(80, 5)
-    drawBox(110, 5)
-    drawBox(140, 5)
-    drawBox(50, 24)
-    drawBox(80, 24)
-    drawBox(110, 24)
-    drawBox(140, 24)
-    drawBox(50, 43)
-    drawBox(80, 43)
-    drawBox(110, 43)
-    drawBox(140, 43)
+def initNodes():
+    global nodes
+    nodes = []
+    for y in [5, 24, 43]:
+        for x in [50, 80, 110, 140]:
+            if y == 24:
+                disabled = True
+            else:
+                disabled = False
+            nodes.append(Node(x, y, disabled))
+    for element in nodes:
+        element.draw()
     drawInstructionBox(2, 4)
     drawConsoleBox(2, 17)
 
@@ -114,7 +130,7 @@ def play_game():
     mouse = libtcod.Mouse()
     key = libtcod.Key()
     while not libtcod.console_is_window_closed():
-        drawBoxes()
+        initNodes()
         #libtcod.console_put_char(0, 5, 5, 200, libtcod.BKGND_NONE)
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
         libtcod.console_flush()
