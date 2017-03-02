@@ -38,7 +38,7 @@ class Node:
         self.x = x
         self.y = y
         self.disabled = disabled
-        self.text = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+        self.text = ["testing", "hi", "tests", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
         self.cursorPosX = 0
         self.cursorPosY = 0
         self.cursorSec = 0
@@ -55,25 +55,24 @@ class Node:
         relativeX = x - (self.x + 1)
         relativeY = y - (self.y + 1)
         if relativeY < 1:
-            self.cursorPosY = 1
-        elif relativeY > 14:
-            self.cursorPosY = 14
+            relativeY = 1
+        elif relativeY > 15:
+            relativeY = 15
+        if self.text[relativeY] == "":
+            last = 0
+            for z in range (relativeY):
+                if self.text[z] != "":
+                    last = z
+            self.cursorPosY = last + 1
         else:
-            if self.text[relativeY] == "":
-                last = 0
-                for z in range (relativeY):
-                    if z != "":
-                        last = z
-                self.cursorPosY = last
-            else:
-                self.cursorPosY = relativeY
+            self.cursorPosY = relativeY
         if relativeX < 1:
-            self.cursorPosX = 1
+            relativeX = 1
         elif relativeX > 18:
-            self.cursorPosX = 18
+            relativeX = 18
         else:
             if len(self.text[self.cursorPosY]) <= relativeX:
-                self.cursorPosX = len(self.text[self.cursorPosX]) + 1
+                self.cursorPosX = len(self.text[self.cursorPosY]) + 1
             else:
                 self.cursorPosX = relativeX
 
@@ -95,6 +94,7 @@ class Node:
                 186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
                 186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
                 186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+                186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
                 200, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 202, 205, 205, 205, 205, 205, 188,
                 ]
         row = self.x
@@ -114,7 +114,10 @@ class Node:
             if row >= 27 + self.x:
                 row = self.x
                 col += 1
-        if secondsElapsed % 2 and focus == self.number and not self.disabled:
+        for y in range(15):
+            for x in range(len(self.text[y])):
+                libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+        if timeElapsed % 1 > .5 and focus == self.number and not self.disabled:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.white, flag=libtcod.BKGND_SET)
         else:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
@@ -171,12 +174,12 @@ def initNodes():
     drawConsoleBox(2, 17)
 
 def play_game():
-    global key, mouse, nodes, secondsElapsed
+    global key, mouse, nodes, timeElapsed
     player_action = None
     mouse = libtcod.Mouse()
     key = libtcod.Key()
     while not libtcod.console_is_window_closed():
-        secondsElapsed = int(libtcod.sys_elapsed_seconds())
+        timeElapsed = libtcod.sys_elapsed_seconds()
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
         if mouse.lbutton_pressed:
             for node in nodes:
