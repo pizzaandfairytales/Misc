@@ -1,0 +1,124 @@
+import libtcodpy as libtcod
+import shelve
+# \30\31\32\33 = arrows
+# 185 = right tee
+# 186 = vertical
+# 187 = top-right corner
+# 188 = bottom-right corner
+# 200 = bottom-left corner
+# 201 = top-left corner
+# 202 = bottom tee
+# 203 = top tee
+# 204 = left tee
+# 205 = horizontal
+# 206 = cross
+
+# 179 = single vertical
+# 180 = single right tee
+# 191 = single top-right corner
+# 192 = single bottom-left corner
+# 193 = single bottom tee
+# 194 = single top tee
+# 195 = single left tee
+# 196 = single horizontal
+# 197 = single cross
+
+# 176 = low patch
+# 177 = medium patch
+# 178 = full patch
+
+LIMIT_FPS = 20
+libtcod.console_set_custom_font('consolas8x8_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
+libtcod.console_init_root(170, 65, 'TIS-100 Clone', False)
+libtcod.sys_set_fps(LIMIT_FPS)
+
+def drawBox(x, y):
+    box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 204,205,205,205,205,205,185,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
+            200, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 202, 205, 205, 205, 205, 205, 188,
+            ]
+    row = x
+    col = y
+    for char in box:
+        libtcod.console_put_char(0, row, col, char, libtcod.BKGND_NONE)
+        row += 1
+        if row >= 27 + x:
+            row = x
+            col += 1
+
+def drawInstructionBox(x, y):
+    libtcod.console_put_char(0, x, y, 201, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 36, y, 187, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x, y + 8, 200, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 36, y + 8, 188, libtcod.BKGND_NONE)
+    for z in range(35):
+        libtcod.console_put_char(0, x+z+1, y, 205, libtcod.BKGND_NONE)
+        libtcod.console_put_char(0, x+z+1, y+8, 205, libtcod.BKGND_NONE)
+    for z in range(7):
+        libtcod.console_put_char(0, x, y+z+1, 186, libtcod.BKGND_NONE)
+        libtcod.console_put_char(0, x+36, y+z+1, 186, libtcod.BKGND_NONE)
+
+def drawConsoleBox(x, y):
+    libtcod.console_put_char(0, x, y, 201, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 6, y, 187, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x, y + 31, 204, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 6, y + 31, 185, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 6, y + 32, 186, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x, y + 32, 186, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x, y + 33, 200, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 6, y + 33, 188, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 1, y + 33, 205, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 2, y + 33, 205, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 3, y + 33, 205, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 4, y + 33, 205, libtcod.BKGND_NONE)
+    libtcod.console_put_char(0, x + 5, y + 33, 205, libtcod.BKGND_NONE)
+    for z in range(5):
+        libtcod.console_put_char(0, x+z+1, y, 205, libtcod.BKGND_NONE)
+        libtcod.console_put_char(0, x+z+1, y+31, 205, libtcod.BKGND_NONE)
+    for z in range(30):
+        libtcod.console_put_char(0, x, y+z+1, 186, libtcod.BKGND_NONE)
+        libtcod.console_put_char(0, x+6, y+z+1, 186, libtcod.BKGND_NONE)
+
+def drawBoxes():
+    drawBox(50, 5)
+    drawBox(80, 5)
+    drawBox(110, 5)
+    drawBox(140, 5)
+    drawBox(50, 24)
+    drawBox(80, 24)
+    drawBox(110, 24)
+    drawBox(140, 24)
+    drawBox(50, 43)
+    drawBox(80, 43)
+    drawBox(110, 43)
+    drawBox(140, 43)
+    drawInstructionBox(2, 4)
+    drawConsoleBox(2, 17)
+
+def play_game():
+    global key, mouse
+    player_action = None
+    mouse = libtcod.Mouse()
+    key = libtcod.Key()
+    while not libtcod.console_is_window_closed():
+        drawBoxes()
+        #libtcod.console_put_char(0, 5, 5, 200, libtcod.BKGND_NONE)
+        libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+        libtcod.console_flush()
+
+
+
+play_game()
