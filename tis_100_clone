@@ -38,7 +38,7 @@ class Node:
         self.x = x
         self.y = y
         self.disabled = disabled
-        self.text = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+        self.text = ["", "", "", "", "test", "", "", "", "", "", "", "", "", "", ""]
         self.cursorPosX = 0
         self.cursorPosY = 0
         self.cursorSec = 0
@@ -60,10 +60,18 @@ class Node:
             relativeY = 15
         if self.text[relativeY - 1] == "":
             last = 0
-            for z in range (relativeY):
+            furtherDown = False
+            # If there's text further down, then it's ok
+            for z in range (relativeY, 15):
                 if self.text[z] != "":
-                    last = z
-            self.cursorPosY = last + 1
+                    furtherDown = True
+            # If there's no text further down, retreat to last line with text
+            if not furtherDown:
+                for z in range (relativeY):
+                    if self.text[z] != "":
+                        last = z
+                self.cursorPosY = last + 1
+            else: self.cursorPosY = relativeY
         else:
             self.cursorPosY = relativeY
         if relativeX < 1:
@@ -76,10 +84,19 @@ class Node:
             else:
                 self.cursorPosX = relativeX
 
-    def keyPress(self, char):
-        string = self.text[self.cursorPosY - 1]
-        
-        
+    def addLetter(self, char):
+        char = char.upper()
+        if (char >= 48 and char <= 57) or (char >= chr(65) and char <= chr(90)):
+            if len(self.text[self.cursorPosY - 1]) <= 17:
+                libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
+                self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX + 1:])
+                self.cursorPosX += 1
+
+    def backspace(self):
+        libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
+        if self.cursorPosX >= 2:
+            self.text[self.cursorPosY - 1] = self.text[self.cursorPosY - 1][0:self.cursorPosX - 2] + self.text[self.cursorPosY - 1][self.cursorPosX - 1:]
+            self.cursorPosX -= 1
 
     def draw(self):
         box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
@@ -162,7 +179,7 @@ def initNodes():
     global nodes, focus
     focus = 0
     nodes = []
-    number = 1
+    number = 0
     for y in [5, 24, 43]:
         for x in [50, 80, 110, 140]:
             if y == 24:
@@ -175,7 +192,7 @@ def initNodes():
     drawConsoleBox(2, 17)
 
 def play_game():
-    global key, mouse, nodes, timeElapsed
+    global key, mouse, nodes, timeElapsed, focus
     player_action = None
     mouse = libtcod.Mouse()
     key = libtcod.Key()
@@ -183,19 +200,44 @@ def play_game():
         timeElapsed = libtcod.sys_elapsed_seconds()
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
         if mouse.lbutton_pressed:
-            for node in nodes:
+            success = False
+            for num in range(len(nodes)):
                 x = mouse.cx
                 y = mouse.cy
-                if node.isTileMine(x, y):
-                    node.click(x, y)
+                if nodes[num].isTileMine(x, y):
+                    focus = num
+                    success = True
+                    nodes[focus].click(x, y)
+            if success == False:
+                focus = -1
         if key.vk == libtcod.KEY_ESCAPE:
             return 0
+        if key.vk == libtcod.KEY_BACKSPACE:
+            nodes[focus].backspace()
+        if key.vk == libtcod.KEY_ENTER:
+            continue
+        if key.vk == libtcod.KEY_UP:
+            if focus != -1:
+                nodes[focus].click(nodes[focus].cursorPosX, nodes[focus].cursorPosY - 1)
+        if key.vk == libtcod.KEY_DOWN:
+            if focus != -1:
+                nodes[focus].click(nodes[focus].cursorPosX, nodes[focus].cursorPosY + 1)
+        if key.vk == libtcod.KEY_LEFT:
+            if focus != -1:
+                nodes[focus].click(nodes[focus].cursorPosX - 1, nodes[focus].cursorPosY)
+        if key.vk == libtcod.KEY_RIGHT:
+            if focus != -1:
+                nodes[focus].click(nodes[focus].cursorPosX + 1, nodes[focus].cursorPosY)
+        if chr(key.c) >= chr(33) and chr(key.c) <= chr(126):
+            if focus != -1:
+                nodes[focus].addLetter(chr(key.c))
         for element in nodes:
             element.draw()
         libtcod.console_flush()
 
 def init():
     initNodes()
+    focus = -1
 
 init()
 play_game()
