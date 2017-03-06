@@ -49,11 +49,12 @@ class Node:
         return False
 
     def click(self, x, y):
-        global focus
-        libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
-        focus = self.number
         relativeX = x - (self.x + 1)
         relativeY = y - (self.y + 1)
+        self.goto(relativeX, relativeY)
+
+    def goto(self, relativeX, relativeY):
+        libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
         if relativeY < 1:
             relativeY = 1
         elif relativeY > 15:
@@ -80,7 +81,7 @@ class Node:
             relativeX = 18
         else:
             if len(self.text[self.cursorPosY]) <= relativeX:
-                self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
+                self.cursorPosX = len(self.text[self.cursorPosY]) + 1
             else:
                 self.cursorPosX = relativeX
 
@@ -89,7 +90,7 @@ class Node:
         if (char >= 48 and char <= 57) or (char >= chr(65) and char <= chr(90)):
             if len(self.text[self.cursorPosY - 1]) <= 17:
                 libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
-                self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX + 1:])
+                self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX:])
                 self.cursorPosX += 1
 
     def backspace(self):
@@ -177,7 +178,7 @@ def drawConsoleBox(x, y):
 
 def initNodes():
     global nodes, focus
-    focus = 0
+    focus = -1
     nodes = []
     number = 0
     for y in [5, 24, 43]:
@@ -218,16 +219,16 @@ def play_game():
             continue
         if key.vk == libtcod.KEY_UP:
             if focus != -1:
-                nodes[focus].click(nodes[focus].cursorPosX, nodes[focus].cursorPosY - 1)
+                nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY - 1)
         if key.vk == libtcod.KEY_DOWN:
             if focus != -1:
-                nodes[focus].click(nodes[focus].cursorPosX, nodes[focus].cursorPosY + 1)
+                nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY + 1)
         if key.vk == libtcod.KEY_LEFT:
             if focus != -1:
-                nodes[focus].click(nodes[focus].cursorPosX - 1, nodes[focus].cursorPosY)
+                nodes[focus].goto(nodes[focus].cursorPosX - 1, nodes[focus].cursorPosY)
         if key.vk == libtcod.KEY_RIGHT:
             if focus != -1:
-                nodes[focus].click(nodes[focus].cursorPosX + 1, nodes[focus].cursorPosY)
+                nodes[focus].goto(nodes[focus].cursorPosX + 1, nodes[focus].cursorPosY)
         if chr(key.c) >= chr(33) and chr(key.c) <= chr(126):
             if focus != -1:
                 nodes[focus].addLetter(chr(key.c))
