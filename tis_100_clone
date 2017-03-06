@@ -38,7 +38,7 @@ class Node:
         self.x = x
         self.y = y
         self.disabled = disabled
-        self.text = ["testing", "hi", "tests", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
+        self.text = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
         self.cursorPosX = 0
         self.cursorPosY = 0
         self.cursorSec = 0
@@ -58,7 +58,7 @@ class Node:
             relativeY = 1
         elif relativeY > 15:
             relativeY = 15
-        if self.text[relativeY] == "":
+        if self.text[relativeY - 1] == "":
             last = 0
             for z in range (relativeY):
                 if self.text[z] != "":
@@ -72,11 +72,14 @@ class Node:
             relativeX = 18
         else:
             if len(self.text[self.cursorPosY]) <= relativeX:
-                self.cursorPosX = len(self.text[self.cursorPosY]) + 1
+                self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
             else:
                 self.cursorPosX = relativeX
 
-
+    def keyPress(self, char):
+        string = self.text[self.cursorPosY - 1]
+        
+        
 
     def draw(self):
         box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
@@ -121,8 +124,6 @@ class Node:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.white, flag=libtcod.BKGND_SET)
         else:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
-
-
 
 def drawInstructionBox(x, y):
     libtcod.console_put_char(0, x, y, 201, libtcod.BKGND_NONE)
