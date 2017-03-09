@@ -80,8 +80,9 @@ class Node:
         elif relativeX > 18:
             relativeX = 18
         else:
-            if len(self.text[self.cursorPosY]) <= relativeX:
-                self.cursorPosX = len(self.text[self.cursorPosY]) + 1
+            print len(self.text[self.cursorPosY - 1])
+            if len(self.text[self.cursorPosY - 1]) <= relativeX - 1:
+                self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
             else:
                 self.cursorPosX = relativeX
 
