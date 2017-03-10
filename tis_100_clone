@@ -52,6 +52,7 @@ class Node:
         self.right = False
         self.read = read
         self.current = 0
+        self.labels = {}
 
     def isTileMine(self, x, y):
         if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
@@ -99,7 +100,7 @@ class Node:
         char = char.upper()
         if len(self.text[self.cursorPosY - 1]) <= 17:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
-            self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX:])
+            self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX - 1]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX - 1:])
             self.cursorPosX += 1
 
     def backspace(self):
@@ -126,6 +127,7 @@ class Node:
             self.cursorPosX = 1
 
     def condense(self):
+        self.condensed = []
         for line in self.text:
             if line != "":
                 self.condensed.append(line)
@@ -229,6 +231,37 @@ class Node:
                 self.acc += self.acc
             else:
                 self.acc += 0
+        elif parse[0] == "SUB":
+            if parse[1] == "UP":
+                if nodes[self.read['up']].down == False:
+                    return
+                else:
+                    self.acc -= nodes[self.read['up']].down
+                    nodes[self.read['up']].down = False
+            elif parse[1] == "DOWN":
+                if nodes[self.read['down']].up == False:
+                    return
+                else:
+                    self.acc -= nodes[self.read['down']].up
+                    nodes[self.read['down']].up = False
+            elif parse[1] == "LEFT":
+                if nodes[self.read['left']].right == False:
+                    return
+                else:
+                    self.acc -= nodes[self.read['left']].right
+                    nodes[self.read['left']].right = False
+            elif parse[1] == "RIGHT":
+                if nodes[self.read['right']].left == False:
+                    return
+                else:
+                    self.acc -= nodes[self.read['right']].left
+                    nodes[self.read['right']].left = False
+            elif parse[1] == "ACC":
+                self.acc -= self.acc
+            else:
+                self.acc -= 0
+        elif parse[0] == "JMP":
+            self.current = self.labels[parse[1]]
         if self.acc >= 999:
             self.acc = 999
         if self.acc <= -999:
@@ -246,13 +279,15 @@ class Node:
         good = 0
         commands = ["MOV", "SAV", "SWP", "ADD", "JMP"]
         stores = ["UP", "DOWN", "LEFT", "RIGHT", "ACC", "NIL"]
-        labels = {}
-        for line in range(len(self.text)):
-            parts = self.text[line].split()
+        self.labels = {}
+        if len(self.condensed) == 0:
+            return True
+        for line in range(len(self.condensed)):
+            parts = self.condensed[line].split()
             if len(parts) != 0:
                 if parts[0][-1] == ';':
-                    labels[parts[0][:-1]] = line
-        for line in self.text:
+                    self.labels[parts[0][:-1]] = line
+        for line in self.condensed:
             if line == "":
                 good += 1
             else:
@@ -279,15 +314,21 @@ class Node:
                     else:
                         if parts[1] in stores:
                             good += 1
+                elif parts[0] == "SUB":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in stores:
+                            good += 1
                 elif parts[0] == "JMP":
                     if len(parts) != 2:
                         break
                     else:
-                        if parts[1] in labels:
+                        if parts[1] in self.labels:
                             good += 1
-                elif parts[0][:-1] in labels:
+                elif parts[0][:-1] in self.labels:
                     good += 1
-        if good >= 15:
+        if good >= len(self.condensed):
             return True
         else:
             return False
@@ -454,15 +495,15 @@ def run_program():
     done = False
     validateCount = 0
     for node in nodes:
+        node.current = 0
+        node.condense()
+    for node in nodes:
         if node.validate():
             validateCount += 1
         else:
             print "node " + str(node.number) + " not validated."
     if validateCount == 12:
         print "ALL NODES VALIDATED."
-        for node in nodes:
-            node.current = 0
-            node.condense()
         libtcod.console_put_char(0, 3, 49, ">", libtcod.BKGND_NONE)
         input = ""
         inputQueue = []
@@ -482,7 +523,7 @@ def run_program():
                 if mouse.cx == 5 and mouse.cy == 61:
                     executing = False
                     libtcod.console_print_ex(0, 3, 49, libtcod.LEFT, libtcod.BKGND_NONE, "     ")
-                    for y in range(29):
+                    for y in range(30):
                         libtcod.console_print_ex(0, 3, 18 + y, libtcod.LEFT, libtcod.BKGND_NONE, "     ")
                     libtcod.console_set_char_background(0, 5, 61, libtcod.Color(255,0,0), flag=libtcod.BKGND_SET)
                     for node in nodes:
@@ -530,9 +571,9 @@ def run_program():
             if len(outQueue) > 0:
                 for n in range(len(outQueue)):
                     if len(history) <= 29:
-                        history.append(">" + str(outQueue.pop()))
+                        history.append(" " + str(outQueue.pop()))
                     else:
-                        history[historyStart] = ">" + str(outQueue.pop())
+                        history[historyStart] = " " + str(outQueue.pop())
                         historyStart += 1
                         if historyStart >= 29:
                             historyStart -= 29
