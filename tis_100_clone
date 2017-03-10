@@ -28,7 +28,7 @@ import shelve
 # 178 = full patch
 
 size_x = 144
-size_y = 74
+size_y = 75
 libtcod.console_set_custom_font('consolas8x8_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
 libtcod.console_init_root(size_x, size_y, 'TIS-100 Clone', False)
 libtcod.sys_set_fps(30)
@@ -171,25 +171,25 @@ class Node:
             elif parse[1] == "NIL":
                 temp = 0
             if parse[2] == "UP":
-                if self.up != False:
+                if self.up == False:
                     self.up = temp
                 else:
                     return
             elif parse[2] == "DOWN":
                 if self.read['down'] != "cout":
-                    if self.down != False:
+                    if self.down == False:
                         self.down = temp
                     else:
                         return
                 else:
                     outQueue.insert(0, temp)
             elif parse[2] == "LEFT":
-                if self.left != False:
+                if self.left == False:
                     self.left = temp
                 else:
                     return
             elif parse[2] == "RIGHT":
-                if self.right != False:
+                if self.right == False:
                     self.right = temp
                 else: return
             elif parse[2] == "ACC":
@@ -338,14 +338,15 @@ class Node:
                         libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
                         libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.black, flag=libtcod.BKGND_SET)
                     else:
-                        if self.text[y] == self.condensed[self.current]:
-                            libtcod.console_set_default_foreground(0, libtcod.black)
-                            libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.white, flag=libtcod.BKGND_SET)
-                            libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
-                        else:
-                            libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.black, flag=libtcod.BKGND_SET)
-                            libtcod.console_set_default_foreground(0, libtcod.white)
-                            libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+                        if len(self.condensed) != 0:
+                            if self.text[y] == self.condensed[self.current]:
+                                libtcod.console_set_default_foreground(0, libtcod.black)
+                                libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.white, flag=libtcod.BKGND_SET)
+                                libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+                            else:
+                                libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.black, flag=libtcod.BKGND_SET)
+                                libtcod.console_set_default_foreground(0, libtcod.white)
+                                libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
         libtcod.console_set_default_foreground(0, libtcod.white)
         libtcod.console_put_char(0, self.x + 29, self.y + 5, "\32", libtcod.BKGND_NONE) # right
         libtcod.console_put_char(0, self.x - 3, self.y + 10, "\33", libtcod.BKGND_NONE) # left
@@ -353,12 +354,22 @@ class Node:
         libtcod.console_put_char(0, self.x + 7, self.y + 19, "\31", libtcod.BKGND_NONE) # down
         if self.right != False:
             libtcod.console_print_ex(0, self.x + 27, self.y + 6, libtcod.BKGND_NONE, libtcod.LEFT, str(self.right))
+            for x in range(len(str(self.right)) + 1, 5):
+                libtcod.console_put_char(0, self.x + 27, self.y + 6, " ", libtcod.BKGND_NONE)
+        else:
+            libtcod.console_print_ex(0, self.x + 27, self.y + 6, libtcod.BKGND_NONE, libtcod.LEFT, "     ")
         if self.left != False:
             libtcod.console_print_ex(0, self.x -5, self.y + 6, libtcod.BKGND_NONE, libtcod.LEFT, str(self.left))
+        else:
+            libtcod.console_print_ex(0, self.x -5, self.y + 6, libtcod.BKGND_NONE, libtcod.LEFT, "     ")
         if self.up != False:
             libtcod.console_print_ex(0, self.x + 16, self.y - 3, libtcod.BKGND_NONE, libtcod.LEFT, str(self.up))
+        else:
+            libtcod.console_print_ex(0, self.x + 16, self.y - 3, libtcod.BKGND_NONE, libtcod.LEFT, "     ")
         if self.down != False:
             libtcod.console_print_ex(0, self.x + 8, self.y + 19, libtcod.BKGND_NONE, libtcod.LEFT, str(self.down))
+        else:
+            libtcod.console_print_ex(0, self.x + 8, self.y + 19, libtcod.BKGND_NONE, libtcod.LEFT, "     ")
 
         if not self.disabled:
             libtcod.console_set_default_foreground(0, libtcod.Color(150,150,150))
@@ -453,7 +464,6 @@ def run_program():
             node.current = 0
             node.condense()
         libtcod.console_put_char(0, 3, 49, ">", libtcod.BKGND_NONE)
-        libtcod.console_set_char_background(0, 5, 61, libtcod.Color(0,255,0), flag=libtcod.BKGND_SET)
         input = ""
         inputQueue = []
         outQueue = []
@@ -461,6 +471,9 @@ def run_program():
         historyStart = 0
         done = False
         while executing:
+            clear_bg()
+            libtcod.console_set_char_background(0, 5, 61, libtcod.Color(0,255,0), flag=libtcod.BKGND_SET)
+            libtcod.console_set_char_background(0, mouse.cx, mouse.cy, libtcod.Color(50,50,50), flag=libtcod.BKGND_SET)
             libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
             for x in range(len(input), 4):
                 libtcod.console_print_ex(0, 4+x, 49, libtcod.LEFT, libtcod.BKGND_NONE, ' ')
@@ -472,6 +485,13 @@ def run_program():
                     for y in range(29):
                         libtcod.console_print_ex(0, 3, 18 + y, libtcod.LEFT, libtcod.BKGND_NONE, "     ")
                     libtcod.console_set_char_background(0, 5, 61, libtcod.Color(255,0,0), flag=libtcod.BKGND_SET)
+                    for node in nodes:
+                        node.acc = 0
+                        node.bak = 0
+                        node.up = False
+                        node.down = False
+                        node.right = False
+                        node.left = False
                     break
             if chr(key.c) >= "0" and chr(key.c) <= "9":
                 if len(input) < 3 or (len(input) < 4 and input[0] == '-'):
