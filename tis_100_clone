@@ -1,5 +1,10 @@
 import libtcodpy as libtcod
 import shelve
+
+# To do:
+# Might not block correctly on MOVs
+# Make run button / hitbox bigger
+
 # \30\31\32\33 = arrows
 # 185 = right tee
 # 186 = vertical
