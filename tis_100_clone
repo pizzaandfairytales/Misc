@@ -40,6 +40,7 @@ class Node:
         self.y = y
         self.disabled = disabled
         self.text = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+        self.condensed = []
         self.cursorPosX = 0
         self.cursorPosY = 0
         self.cursorSec = 0
@@ -124,6 +125,104 @@ class Node:
             self.cursorPosY += 1
             self.cursorPosX = 1
 
+    def condense(self):
+        for line in self.text:
+            if line != "":
+                self.condensed.append(line)
+
+    def executeLine(self):
+        global inputQueue, outQueue
+        temp = None
+        line = self.condensed[self.current]
+        parse = line.split()
+        if parse[0] == "MOV":
+            if parse[1] == "UP":
+                if self.read['up'] != "cin":
+                    if nodes[self.read['up']].down == False:
+                        return
+                    else:
+                        temp = nodes[self.read['up']].down
+                        nodes[self.read['up']].down = False
+                else:
+                    if len(inputQueue) > 0:
+                        temp = inputQueue.pop()
+                    else:
+                        return
+            elif parse[1] == "DOWN":
+                if nodes[self.read['down']].up == False:
+                    return
+                else:
+                    nodes[self.read['down']].up = False
+                    temp = nodes[self.read['down']].up
+            elif parse[1] == "LEFT":
+                if nodes[self.read['left']].right == False:
+                    return
+                else:
+                    temp = nodes[self.read['left']].right
+                    nodes[self.read['left']].right = False
+            elif parse[1] == "RIGHT":
+                if nodes[self.read['right']].left == False:
+                    return
+                else:
+                    temp = nodes[self.read['right']].left
+                    nodes[self.read['right']].left = False
+            elif parse[1] == "ACC":
+                temp = self.acc
+            else:
+                temp = 0
+            if parse[2] == "UP":
+                self.up = temp
+            elif parse[2] == "DOWN":
+                if self.read['down'] != "cout":
+                    self.down = temp
+                else:
+                    outQueue.insert(0, temp)
+            elif parse[2] == "LEFT":
+                self.left = temp
+            elif parse[2] == "RIGHT":
+                self.right = temp
+            else:
+                self.ACC = temp
+        elif parse[0] == "SAV":
+            self.bak = self.acc
+        elif parse[0] == "SWP":
+            temp = self.bak
+            self.bak = self.acc
+            self.acc = temp
+        elif parse[0] == "ADD":
+            if parse[1] == "UP":
+                if nodes[self.read['up']].down == False:
+                    return
+                else:
+                    self.acc += nodes[self.read['up']].down
+                    nodes[self.read['up']].down = False
+            elif parse[1] == "DOWN":
+                if nodes[self.read['down']].up == False:
+                    return
+                else:
+                    self.acc += nodes[self.read['down']].up
+                    nodes[self.read['down']].up = False
+            elif parse[1] == "LEFT":
+                if nodes[self.read['left']].right == False:
+                    return
+                else:
+                    self.acc += nodes[self.read['left']].right
+                    nodes[self.read['left']].right = False
+            elif parse[1] == "RIGHT":
+                if nodes[self.read['right']].left == False:
+                    return
+                else:
+                    self.acc += nodes[self.read['right']].left
+                    nodes[self.read['right']].left = False
+            elif parse[1] == "ACC":
+                self.acc += self.acc
+            else:
+                self.acc += 0
+        self.current += 1
+        if self.current == len(self.condensed):
+            self.current = 0
+
+
     def validate(self):
         good = 0
         commands = ["MOV", "SAV", "SWP", "ADD", "JMP"]
@@ -175,6 +274,7 @@ class Node:
             return False
 
     def draw(self):
+        global executing
         box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
                 186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
                 186, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 186,0,0,0,0,0,186,
@@ -209,12 +309,20 @@ class Node:
             for z in range(13):
                 libtcod.console_put_char(0, self.x + z + 4, self.y + 5, 176, libtcod.BKGND_NONE)
                 libtcod.console_put_char(0, self.x + z + 4, self.y + 10, 176, libtcod.BKGND_NONE)
-                libtcod.console_print_ex(0, self.x + 4, self.y + 7, libtcod.BKGND_NONE, libtcod.LEFT, "COMMUNICATION")
-                libtcod.console_print_ex(0, self.x + 7, self.y + 8, libtcod.BKGND_NONE, libtcod.LEFT, "FAILURE")
+            libtcod.console_print_ex(0, self.x + 4, self.y + 7, libtcod.BKGND_NONE, libtcod.LEFT, "COMMUNICATION")
+            libtcod.console_print_ex(0, self.x + 7, self.y + 8, libtcod.BKGND_NONE, libtcod.LEFT, "FAILURE")
         else:
             for y in range(15):
                 for x in range(len(self.text[y])):
-                    libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+                    if not executing:
+                        libtcod.console_set_default_foreground(0, libtcod.white)
+                        libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+                        libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.black, flag=libtcod.BKGND_SET)
+                    else:
+                        libtcod.console_set_default_foreground(0, libtcod.black)
+                        libtcod.console_set_char_background(0, self.x + 1 + x, self.y + 1 + y, libtcod.white, flag=libtcod.BKGND_SET)
+                        libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+        libtcod.console_set_default_foreground(0, libtcod.white)
         libtcod.console_put_char(0, self.x + 29, self.y + 5, "\32", libtcod.BKGND_NONE) # right
         libtcod.console_put_char(0, self.x - 3, self.y + 10, "\33", libtcod.BKGND_NONE) # left
         libtcod.console_put_char(0, self.x + 15, self.y - 3, "\30", libtcod.BKGND_NONE) # up
@@ -295,6 +403,8 @@ def initNodes():
                 read['right'] = None
             if number == 1:
                 read['up'] = "cin"
+            if number == 10:
+                read['down'] = 'cout'
             nodes.append(Node(x, y, number, disabled, read))
             number += 1
     drawConsoleBox(2, 17)
@@ -304,7 +414,8 @@ def initNodes():
     libtcod.console_print_ex(0, 4, 63, libtcod.LEFT, libtcod.BKGND_NONE, "Run")
 
 def run_program():
-    global key, mouse
+    global key, mouse, inputQueue, outQueue, executing
+    executing = True
     done = False
     validateCount = 0
     for node in nodes:
@@ -314,21 +425,25 @@ def run_program():
             print "node " + str(node.number) + " not validated."
     if validateCount == 12:
         print "ALL NODES VALIDATED."
+        for node in nodes:
+            node.condense()
         libtcod.console_put_char(0, 3, 49, ">", libtcod.BKGND_NONE)
         libtcod.console_set_char_background(0, 5, 61, libtcod.Color(0,255,0), flag=libtcod.BKGND_SET)
         input = ""
-        queue = []
+        inputQueue = []
+        outQueue = []
         history = []
         historyStart = 0
         done = False
-        while not done:
+        while executing:
             libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
             for x in range(len(input), 4):
                 libtcod.console_print_ex(0, 4+x, 49, libtcod.LEFT, libtcod.BKGND_NONE, ' ')
             libtcod.console_print_ex(0, 4, 49, libtcod.LEFT, libtcod.BKGND_NONE, input)
             if mouse.lbutton_pressed:
                 if mouse.cx == 5 and mouse.cy == 61:
-                    done = True
+                    executing = False
+                    libtcod.console_set_char_background(0, 5, 61, libtcod.Color(255,0,0), flag=libtcod.BKGND_SET)
             if chr(key.c) >= "0" and chr(key.c) <= "9":
                 if len(input) < 3 or (len(input) < 4 and input[0] == '-'):
                     input += chr(key.c)
@@ -343,11 +458,11 @@ def run_program():
                 input = input[:-1]
             elif key.vk == libtcod.KEY_ENTER:
                 if input != "":
-                    queue.insert(0, input)
+                    inputQueue.insert(0, input)
                     if len(history) <= 29:
                         history.append(">" + input)
                     else:
-                        history[historyStart] = input
+                        history[historyStart] = ">" + input
                         historyStart += 1
                         if historyStart >= 29:
                             historyStart -= 29
@@ -363,16 +478,29 @@ def run_program():
             for element in nodes:
                 element.draw()
             libtcod.console_flush()
+            for node in nodes:
+                if len(node.condensed) > 0:
+                    node.executeLine()
+            if len(outQueue) > 0:
+                for n in range(len(outQueue)):
+                    if len(history) <= 29:
+                        history.append(outQueue.pop())
+                    else:
+                        history[historyStart] = outQueue.pop()
+                        historyStart += 1
+                        if historyStart >= 29:
+                            historyStart -= 29
 
 
 
 
 def play_game():
-    global key, mouse, nodes, timeElapsed, focus
+    global key, mouse, nodes, timeElapsed, focus, executing
     player_action = None
     mouse = libtcod.Mouse()
     key = libtcod.Key()
     while not libtcod.console_is_window_closed():
+        executing = False
         clear_bg()
         libtcod.console_set_char_background(0, 5, 61, libtcod.Color(255,0,0), flag=libtcod.BKGND_SET)
         libtcod.console_set_char_background(0, mouse.cx, mouse.cy, libtcod.Color(50,50,50), flag=libtcod.BKGND_SET)
