@@ -110,11 +110,13 @@ class Node:
             self.cursorPosX -= 1
         else:
             if self.cursorPosY >= 2:
-                self.cursorPosY -= 1
-                self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
-                for x in range (self.cursorPosY, 14):
-                    self.text[x] = self.text[x+1]
-                    self.text[14] = ""
+                if (len(self.text[self.cursorPosY - 2]) + len(self.text[self.cursorPosY - 1])) <= 18:
+                    self.cursorPosY -= 1
+                    self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
+                    self.text[self.cursorPosY - 1] += self.text[self.cursorPosY]
+                    for x in range (self.cursorPosY, 14):
+                        self.text[x] = self.text[x+1]
+                        self.text[14] = ""
 
     def newline(self):
         libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
@@ -129,7 +131,7 @@ class Node:
     def condense(self):
         self.condensed = []
         for line in self.text:
-            if line != "":
+            if line != "" and line[0] != ';':
                 self.condensed.append(line)
 
     def executeLine(self):
@@ -172,6 +174,8 @@ class Node:
                 temp = self.acc
             elif parse[1] == "NIL":
                 temp = 0
+            elif int(parse[1]) >= -999 and int(parse[1]) <= 999:
+                temp = int(parse[1])
             if parse[2] == "UP":
                 if self.up == False:
                     self.up = temp
@@ -266,6 +270,20 @@ class Node:
                 self.acc -= int(parse[1])
         elif parse[0] == "JMP":
             self.current = self.labels[parse[1]]
+        elif parse[0] == "NEG":
+            self.acc *= -1
+        elif parse[0] == "JEZ":
+            if self.acc == 0:
+                self.current = self.labels[parse[1]]
+        elif parse[0] == "JNZ":
+            if self.acc != 0:
+                self.current = self.labels[parse[1]]
+        elif parse[0] == "JGZ":
+            if self.acc > 0:
+                self.current = self.labels[parse[1]]
+        elif parse[0] == "JLZ":
+            if self.acc < 0:
+                self.current = self.labels[parse[1]]
         if self.acc >= 999:
             self.acc = 999
         if self.acc <= -999:
@@ -285,7 +303,6 @@ class Node:
 
     def validate(self):
         good = 0
-        commands = ["MOV", "SAV", "SWP", "ADD", "JMP"]
         stores = ["UP", "DOWN", "LEFT", "RIGHT", "ACC", "NIL"]
         self.labels = {}
         if len(self.condensed) == 0:
@@ -304,9 +321,15 @@ class Node:
                     if len(parts) != 3:
                         break
                     else:
-                        if (parts[1] in stores or (int(parts[1]) >= -999 and int(parts[1] <= 999))) and parts[2] in stores:
+                        if (parts[1] in stores or (int(parts[1]) >= -999 and int(parts[1]) <= 999)) and parts[2] in stores:
+                            "good here"
                             good += 1
                 elif parts[0] == "SAV":
+                    if len(parts) != 1:
+                        break
+                    else:
+                        good += 1
+                elif parts[0] == "NEG":
                     if len(parts) != 1:
                         break
                     else:
@@ -334,8 +357,32 @@ class Node:
                     else:
                         if parts[1] in self.labels:
                             good += 1
+                elif parts[0] == "JEZ":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in self.labels:
+                            good += 1
                 elif parts[0][:-1] in self.labels:
                     good += 1
+                elif parts[0] == "JNZ":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in self.labels:
+                            good += 1
+                elif parts[0] == "JGZ":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in self.labels:
+                            good += 1
+                elif parts[0] == "JLZ":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in self.labels:
+                            good += 1
         if good >= len(self.condensed):
             return True
         else:
