@@ -484,6 +484,17 @@ def clear_bg():
         for y in range(size_y):
             libtcod.console_set_char_background(0, x, y, libtcod.black, flag=libtcod.BKGND_SET)
 
+def saveState():
+    f = shelve.open("program", "n")
+    f['nodes'] = nodes
+    f.close()
+
+def loadState():
+    global nodes
+    f = shelve.open("program", "r")
+    nodes = f['nodes']
+    f.close()
+
 def drawConsoleBox(x, y):
     libtcod.console_put_char(0, x, y, 201, libtcod.BKGND_NONE)
     libtcod.console_put_char(0, x + 6, y, 187, libtcod.BKGND_NONE)
@@ -509,35 +520,38 @@ def initNodes():
     global nodes, focus
     focus = -1
     nodes = []
-    number = 0
-    row_y = [7, 29, 51]
-    row_x = [15, 47, 79, 111]
-    for y in row_y:
-        for x in row_x:
-            read = {}
-            disabled = False
-            if y != row_y[0]:
-                read['up'] = number - 4
-            else:
-                read['up'] = None
-            if x != row_x[0]:
-                read['left'] = number - 1
-            else:
-                read['left'] = None
-            if y != row_y[len(row_y) - 1]:
-                read['down'] = number + 4
-            else:
-                read['down'] = None
-            if x != row_x[len(row_x) - 1]:
-                read['right'] = number + 1
-            else:
-                read['right'] = None
-            if number == 1:
-                read['up'] = "cin"
-            if number == 10:
-                read['down'] = 'cout'
-            nodes.append(Node(x, y, number, disabled, read))
-            number += 1
+    try:
+        loadState()
+    except:
+        number = 0
+        row_y = [7, 29, 51]
+        row_x = [15, 47, 79, 111]
+        for y in row_y:
+            for x in row_x:
+                read = {}
+                disabled = False
+                if y != row_y[0]:
+                    read['up'] = number - 4
+                else:
+                    read['up'] = None
+                if x != row_x[0]:
+                    read['left'] = number - 1
+                else:
+                    read['left'] = None
+                if y != row_y[len(row_y) - 1]:
+                    read['down'] = number + 4
+                else:
+                    read['down'] = None
+                if x != row_x[len(row_x) - 1]:
+                    read['right'] = number + 1
+                else:
+                    read['right'] = None
+                if number == 1:
+                    read['up'] = "cin"
+                if number == 10:
+                    read['down'] = 'cout'
+                nodes.append(Node(x, y, number, disabled, read))
+                number += 1
     drawConsoleBox(2, 17)
     libtcod.console_print_ex(0, 53, 2, libtcod.LEFT, libtcod.BKGND_NONE, "Input")
     libtcod.console_put_char(0, 55, 4, "\31", libtcod.BKGND_NONE)
@@ -598,6 +612,7 @@ def run_program():
                 else:
                     input = input[1:]
             elif key.vk == libtcod.KEY_ESCAPE:
+                saveState()
                 return False
             elif key.vk == libtcod.KEY_BACKSPACE:
                 input = input[:-1]
@@ -667,6 +682,7 @@ def play_game():
                 if success == False:
                     focus = -1
         if key.vk == libtcod.KEY_ESCAPE:
+            saveState()
             return 0
         if focus != -1:
             if key.vk == libtcod.KEY_BACKSPACE:
