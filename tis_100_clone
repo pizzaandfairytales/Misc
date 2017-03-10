@@ -53,6 +53,7 @@ class Node:
         self.read = read
         self.current = 0
         self.labels = {}
+        self.failed = False
 
     def isTileMine(self, x, y):
         if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
@@ -63,6 +64,7 @@ class Node:
         relativeX = x - (self.x)
         relativeY = y - (self.y)
         self.goto(relativeX, relativeY)
+        self.failed = False
 
     def goto(self, relativeX, relativeY):
         libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
@@ -386,6 +388,7 @@ class Node:
         if good >= len(self.condensed):
             return True
         else:
+            self.failed = True
             return False
 
     def draw(self):
@@ -410,7 +413,7 @@ class Node:
                 ]
         row = self.x
         col = self.y
-        if self.disabled:
+        if self.failed:
             libtcod.console_set_default_foreground(0, libtcod.red)
         else:
             libtcod.console_set_default_foreground(0, libtcod.white)
@@ -569,10 +572,7 @@ def run_program():
     for node in nodes:
         if node.validate():
             validateCount += 1
-        else:
-            print "node " + str(node.number) + " not validated."
     if validateCount == 12:
-        print "ALL NODES VALIDATED."
         libtcod.console_put_char(0, 3, 49, ">", libtcod.BKGND_NONE)
         input = ""
         inputQueue = []
