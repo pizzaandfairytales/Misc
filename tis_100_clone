@@ -27,10 +27,9 @@ import shelve
 # 177 = medium patch
 # 178 = full patch
 
-LIMIT_FPS = 30
 libtcod.console_set_custom_font('consolas8x8_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
-libtcod.console_init_root(170, 65, 'TIS-100 Clone', False)
-libtcod.sys_set_fps(LIMIT_FPS)
+libtcod.console_init_root(140, 74, 'TIS-100 Clone', False)
+libtcod.sys_set_fps(30)
 
 class Node:
     def __init__(self, x, y, number, disabled=False):
@@ -93,7 +92,6 @@ class Node:
 
     def addLetter(self, char):
         char = char.upper()
-        #if (char >= 48 and char <= 57) or (char >= chr(65) and char <= chr(90)):
         if len(self.text[self.cursorPosY - 1]) <= 17:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
             self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX:])
@@ -163,8 +161,14 @@ class Node:
             for y in range(15):
                 for x in range(len(self.text[y])):
                     libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+        if self.right == False:
+            libtcod.console_put_char(0, self.x + 29, self.y + 5, "\32", libtcod.BKGND_NONE)
+        if self.left == False:
+            libtcod.console_put_char(0, self.x - 3, self.y + 10, "\33", libtcod.BKGND_NONE)
         if self.up == False:
-            libtcod.console_put_char(0, self.x + 30, self.y + 5, chr(30), libtcod.BKGND_NONE)
+            libtcod.console_put_char(0, self.x + 15, self.y - 3, "\30", libtcod.BKGND_NONE)
+        if self.down == False:
+            libtcod.console_put_char(0, self.x + 9, self.y + 19, "\31", libtcod.BKGND_NONE)
 
         if not self.disabled:
             libtcod.console_set_default_foreground(0, libtcod.Color(150,150,150))
@@ -216,15 +220,12 @@ def initNodes():
     focus = -1
     nodes = []
     number = 0
-    for y in [5, 24, 43]:
-        for x in [50, 80, 110, 140]:
-            if y == 5 and x == 50:
-                disabled = False
-            else:
-                disabled = True
+    for y in [6, 28, 50]:
+        for x in [15, 47, 79, 111]:
+            disabled = False
             nodes.append(Node(x, y, number, disabled))
             number += 1
-    drawInstructionBox(2, 4)
+    #drawInstructionBox(2, 4)
     drawConsoleBox(2, 17)
 
 def play_game():
@@ -248,25 +249,21 @@ def play_game():
                 focus = -1
         if key.vk == libtcod.KEY_ESCAPE:
             return 0
-        if key.vk == libtcod.KEY_BACKSPACE:
-            nodes[focus].backspace()
-        if key.vk == libtcod.KEY_ENTER:
-            nodes[focus].newline()
-        if key.vk == libtcod.KEY_UP:
-            if focus != -1:
-                nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY - 1)
-        if key.vk == libtcod.KEY_DOWN:
-            if focus != -1:
-                nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY + 1)
-        if key.vk == libtcod.KEY_LEFT:
-            if focus != -1:
-                nodes[focus].goto(nodes[focus].cursorPosX - 1, nodes[focus].cursorPosY)
-        if key.vk == libtcod.KEY_RIGHT:
-            if focus != -1:
-                nodes[focus].goto(nodes[focus].cursorPosX + 1, nodes[focus].cursorPosY)
-        if chr(key.c) >= chr(32) and chr(key.c) <= chr(126):
-            if focus != -1:
-                nodes[focus].addLetter(chr(key.c))
+        if focus != -1:
+            if key.vk == libtcod.KEY_BACKSPACE:
+                nodes[focus].backspace()
+            if key.vk == libtcod.KEY_ENTER:
+                nodes[focus].newline()
+            if key.vk == libtcod.KEY_UP:
+                    nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY - 1)
+            if key.vk == libtcod.KEY_DOWN:
+                    nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY + 1)
+            if key.vk == libtcod.KEY_LEFT:
+                    nodes[focus].goto(nodes[focus].cursorPosX - 1, nodes[focus].cursorPosY)
+            if key.vk == libtcod.KEY_RIGHT:
+                    nodes[focus].goto(nodes[focus].cursorPosX + 1, nodes[focus].cursorPosY)
+            if chr(key.c) >= chr(32) and chr(key.c) <= chr(126):
+                    nodes[focus].addLetter(chr(key.c))
         for element in nodes:
             element.draw()
         libtcod.console_flush()
