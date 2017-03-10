@@ -143,24 +143,26 @@ class Node:
                 ]
         row = self.x
         col = self.y
+        if self.disabled:
+            libtcod.console_set_default_foreground(0, libtcod.red)
+        else:
+            libtcod.console_set_default_foreground(0, libtcod.white)
         for char in box:
-            if self.disabled:
-                libtcod.console_set_default_foreground(0, libtcod.red)
-                for z in range(13):
-                    libtcod.console_put_char(0, self.x + z + 4, self.y + 5, 176, libtcod.BKGND_NONE)
-                    libtcod.console_put_char(0, self.x + z + 4, self.y + 10, 176, libtcod.BKGND_NONE)
-                libtcod.console_print_ex(0, self.x + 4, self.y + 7, libtcod.BKGND_NONE, libtcod.LEFT, "COMMUNICATION")
-                libtcod.console_print_ex(0, self.x + 7, self.y + 8, libtcod.BKGND_NONE, libtcod.LEFT, "FAILURE")
-            else:
-                libtcod.console_set_default_foreground(0, libtcod.white)
             libtcod.console_put_char(0, row, col, char, libtcod.BKGND_NONE)
             row += 1
             if row >= 27 + self.x:
                 row = self.x
                 col += 1
-        for y in range(15):
-            for x in range(len(self.text[y])):
-                libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+        if self.disabled:
+            for z in range(13):
+                libtcod.console_put_char(0, self.x + z + 4, self.y + 5, 176, libtcod.BKGND_NONE)
+                libtcod.console_put_char(0, self.x + z + 4, self.y + 10, 176, libtcod.BKGND_NONE)
+                libtcod.console_print_ex(0, self.x + 4, self.y + 7, libtcod.BKGND_NONE, libtcod.LEFT, "COMMUNICATION")
+                libtcod.console_print_ex(0, self.x + 7, self.y + 8, libtcod.BKGND_NONE, libtcod.LEFT, "FAILURE")
+        else:
+            for y in range(15):
+                for x in range(len(self.text[y])):
+                    libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
         if self.up == False:
             libtcod.console_put_char(0, self.x + 30, self.y + 5, chr(30), libtcod.BKGND_NONE)
 
@@ -216,7 +218,10 @@ def initNodes():
     number = 0
     for y in [5, 24, 43]:
         for x in [50, 80, 110, 140]:
-            disabled = False
+            if y == 5 and x == 50:
+                disabled = False
+            else:
+                disabled = True
             nodes.append(Node(x, y, number, disabled))
             number += 1
     drawInstructionBox(2, 4)
