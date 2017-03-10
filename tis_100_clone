@@ -144,13 +144,14 @@ class Node:
     def executeLine(self):
         global inputQueue, outQueue
         temp = None
+        wait = False
         line = self.condensed[self.current]
         parse = line.split()
         if parse[0] == "MOV":
             if parse[1] == "UP":
                 if self.read['up'] != "cin":
                     if nodes[self.read['up']].down == False:
-                        return
+                        wait = True
                     else:
                         temp = nodes[self.read['up']].down
                         nodes[self.read['up']].down = False
@@ -158,22 +159,22 @@ class Node:
                     if len(inputQueue) > 0:
                         temp = inputQueue.pop()
                     else:
-                        return
+                        wait = True
             elif parse[1] == "DOWN":
                 if nodes[self.read['down']].up == False:
-                    return
+                    wait = True
                 else:
                     nodes[self.read['down']].up = False
                     temp = nodes[self.read['down']].up
             elif parse[1] == "LEFT":
                 if nodes[self.read['left']].right == False:
-                    return
+                    wait = True
                 else:
                     temp = nodes[self.read['left']].right
                     nodes[self.read['left']].right = False
             elif parse[1] == "RIGHT":
                 if nodes[self.read['right']].left == False:
-                    return
+                    wait = True
                 else:
                     temp = nodes[self.read['right']].left
                     nodes[self.read['right']].left = False
@@ -183,30 +184,32 @@ class Node:
                 temp = 0
             elif int(parse[1]) >= -999 and int(parse[1]) <= 999:
                 temp = int(parse[1])
-            if parse[2] == "UP":
-                if self.up == False:
-                    self.up = temp
-                else:
-                    return
-            elif parse[2] == "DOWN":
-                if self.read['down'] != "cout":
-                    if self.down == False:
-                        self.down = temp
+            if not wait:
+                if parse[2] == "UP":
+                    if self.up == False:
+                        self.up = temp
                     else:
-                        return
-                else:
-                    outQueue.insert(0, temp)
-            elif parse[2] == "LEFT":
-                if self.left == False:
-                    self.left = temp
-                else:
-                    return
-            elif parse[2] == "RIGHT":
-                if self.right == False:
-                    self.right = temp
-                else: return
-            elif parse[2] == "ACC":
-                self.acc = temp
+                        wait = True
+                elif parse[2] == "DOWN":
+                    if self.read['down'] != "cout":
+                        if self.down == False:
+                            self.down = temp
+                        else:
+                            wait = True
+                    else:
+                        outQueue.insert(0, temp)
+                elif parse[2] == "LEFT":
+                    if self.left == False:
+                        self.left = temp
+                    else:
+                        wait = True
+                elif parse[2] == "RIGHT":
+                    if self.right == False:
+                        self.right = temp
+                    else:
+                        wait = True
+                elif parse[2] == "ACC":
+                    self.acc = temp
         elif parse[0] == "SAV":
             self.bak = self.acc
         elif parse[0] == "SWP":
@@ -216,25 +219,25 @@ class Node:
         elif parse[0] == "ADD":
             if parse[1] == "UP":
                 if nodes[self.read['up']].down == False:
-                    return
+                    wait = True
                 else:
                     self.acc += nodes[self.read['up']].down
                     nodes[self.read['up']].down = False
             elif parse[1] == "DOWN":
                 if nodes[self.read['down']].up == False:
-                    return
+                    rwait = True
                 else:
                     self.acc += nodes[self.read['down']].up
                     nodes[self.read['down']].up = False
             elif parse[1] == "LEFT":
                 if nodes[self.read['left']].right == False:
-                    return
+                    wait = True
                 else:
                     self.acc += nodes[self.read['left']].right
                     nodes[self.read['left']].right = False
             elif parse[1] == "RIGHT":
                 if nodes[self.read['right']].left == False:
-                    return
+                    wait = True
                 else:
                     self.acc += nodes[self.read['right']].left
                     nodes[self.read['right']].left = False
@@ -247,25 +250,25 @@ class Node:
         elif parse[0] == "SUB":
             if parse[1] == "UP":
                 if nodes[self.read['up']].down == False:
-                    return
+                    wait = True
                 else:
                     self.acc -= nodes[self.read['up']].down
                     nodes[self.read['up']].down = False
             elif parse[1] == "DOWN":
                 if nodes[self.read['down']].up == False:
-                    return
+                    wait = True
                 else:
                     self.acc -= nodes[self.read['down']].up
                     nodes[self.read['down']].up = False
             elif parse[1] == "LEFT":
                 if nodes[self.read['left']].right == False:
-                    return
+                    wait = True
                 else:
                     self.acc -= nodes[self.read['left']].right
                     nodes[self.read['left']].right = False
             elif parse[1] == "RIGHT":
                 if nodes[self.read['right']].left == False:
-                    return
+                    wait = True
                 else:
                     self.acc -= nodes[self.read['right']].left
                     nodes[self.read['right']].left = False
@@ -299,11 +302,8 @@ class Node:
             self.bak = 999
         if self.bak <= -999:
             self.bak = -999
-        currLine = self.condensed[self.current].split()
-        if currLine[0] == "MOV":
-            if (currLine[2] == "UP" and self.up != False) or (currLine[2] == "DOWN" and self.down != False) or (currLine[2] == "LEFT" and self.left != False) or (currLine[2] == "RIGHT" and self.right != False):
-                self.current -= 1
-        self.current += 1
+        if not wait:
+            self.current += 1
         if self.current == len(self.condensed):
             self.current = 0
 
@@ -493,13 +493,19 @@ def clear_bg():
             libtcod.console_set_char_background(0, x, y, libtcod.black, flag=libtcod.BKGND_SET)
 
 def saveState():
-    f = shelve.open("program", "n")
+    f = open("load.txt", "r")
+    program = f.readline()
+    f.close()
+    f = shelve.open(program, "n")
     f['nodes'] = nodes
     f.close()
 
 def loadState():
     global nodes
-    f = shelve.open("program", "r")
+    f = open("load.txt", "r")
+    program = f.readline()
+    f.close()
+    f = shelve.open(program, "r")
     nodes = f['nodes']
     f.close()
 
