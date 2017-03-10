@@ -50,6 +50,7 @@ class Node:
         self.left = False
         self.right = False
         self.read = read
+        self.current = 0
 
     def isTileMine(self, x, y):
         if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
@@ -303,6 +304,8 @@ def initNodes():
     libtcod.console_print_ex(0, 4, 63, libtcod.LEFT, libtcod.BKGND_NONE, "Run")
 
 def run_program():
+    global key, mouse
+    done = False
     validateCount = 0
     for node in nodes:
         if node.validate():
@@ -311,6 +314,58 @@ def run_program():
             print "node " + str(node.number) + " not validated."
     if validateCount == 12:
         print "ALL NODES VALIDATED."
+        libtcod.console_put_char(0, 3, 49, ">", libtcod.BKGND_NONE)
+        libtcod.console_set_char_background(0, 5, 61, libtcod.Color(0,255,0), flag=libtcod.BKGND_SET)
+        input = ""
+        queue = []
+        history = []
+        historyStart = 0
+        done = False
+        while not done:
+            libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+            for x in range(len(input), 4):
+                libtcod.console_print_ex(0, 4+x, 49, libtcod.LEFT, libtcod.BKGND_NONE, ' ')
+            libtcod.console_print_ex(0, 4, 49, libtcod.LEFT, libtcod.BKGND_NONE, input)
+            if mouse.lbutton_pressed:
+                if mouse.cx == 5 and mouse.cy == 61:
+                    done = True
+            if chr(key.c) >= "0" and chr(key.c) <= "9":
+                if len(input) < 3 or (len(input) < 4 and input[0] == '-'):
+                    input += chr(key.c)
+            elif chr(key.c) == '-':
+                if len(input) == 0 or input[0] != '-':
+                    input = '-' + input
+                else:
+                    input = input[1:]
+            elif key.vk == libtcod.KEY_ESCAPE:
+                return False
+            elif key.vk == libtcod.KEY_BACKSPACE:
+                input = input[:-1]
+            elif key.vk == libtcod.KEY_ENTER:
+                if input != "":
+                    queue.insert(0, input)
+                    if len(history) <= 29:
+                        history.append(">" + input)
+                    else:
+                        history[historyStart] = input
+                        historyStart += 1
+                        if historyStart >= 29:
+                            historyStart -= 29
+                    input = ""
+                    for y in range(29):
+                        for x in range(len(input), 4):
+                            libtcod.console_print_ex(0, 4+x, 19 + y, libtcod.LEFT, libtcod.BKGND_NONE, ' ')
+                    for index in range(len(history)):
+                        trueIndex = index + historyStart
+                        if trueIndex >= 29:
+                            trueIndex -= 29
+                        libtcod.console_print_ex(0, 3, 18 + index, libtcod.LEFT, libtcod.BKGND_NONE, history[trueIndex])
+            for element in nodes:
+                element.draw()
+            libtcod.console_flush()
+
+
+
 
 def play_game():
     global key, mouse, nodes, timeElapsed, focus
