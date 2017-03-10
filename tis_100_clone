@@ -38,12 +38,16 @@ class Node:
         self.x = x
         self.y = y
         self.disabled = disabled
-        self.text = ["", "", "", "", "test", "a", "bdv", "sdf", "fun", "time", "", "", "", "", ""]
+        self.text = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
         self.cursorPosX = 0
         self.cursorPosY = 0
         self.cursorSec = 0
         self.acc = 0
         self.bak = 0
+        self.up = False
+        self.down = False
+        self.left = False
+        self.right = False
 
     def isTileMine(self, x, y):
         if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
@@ -157,6 +161,9 @@ class Node:
         for y in range(15):
             for x in range(len(self.text[y])):
                 libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+        if self.up == False:
+            libtcod.console_put_char(0, self.x + 30, self.y + 5, chr(30), libtcod.BKGND_NONE)
+
         if not self.disabled:
             libtcod.console_set_default_foreground(0, libtcod.Color(150,150,150))
             libtcod.console_print_ex(0, self.x + 22, self.y + 1, libtcod.BKGND_NONE, libtcod.LEFT, "ACC")
@@ -209,10 +216,7 @@ def initNodes():
     number = 0
     for y in [5, 24, 43]:
         for x in [50, 80, 110, 140]:
-            if y == 24:
-                disabled = True
-            else:
-                disabled = False
+            disabled = False
             nodes.append(Node(x, y, number, disabled))
             number += 1
     drawInstructionBox(2, 4)
