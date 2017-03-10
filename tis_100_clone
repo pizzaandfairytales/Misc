@@ -27,12 +27,14 @@ import shelve
 # 177 = medium patch
 # 178 = full patch
 
+size_x = 140
+size_y = 74
 libtcod.console_set_custom_font('consolas8x8_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
-libtcod.console_init_root(140, 74, 'TIS-100 Clone', False)
+libtcod.console_init_root(size_x, size_y, 'TIS-100 Clone', False)
 libtcod.sys_set_fps(30)
 
 class Node:
-    def __init__(self, x, y, number, disabled=False):
+    def __init__(self, x, y, number, disabled, read):
         self.number = number
         self.x = x
         self.y = y
@@ -47,6 +49,7 @@ class Node:
         self.down = False
         self.left = False
         self.right = False
+        self.read = read
 
     def isTileMine(self, x, y):
         if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
@@ -54,8 +57,8 @@ class Node:
         return False
 
     def click(self, x, y):
-        relativeX = x - (self.x + 1)
-        relativeY = y - (self.y + 1)
+        relativeX = x - (self.x)
+        relativeY = y - (self.y)
         self.goto(relativeX, relativeY)
 
     def goto(self, relativeX, relativeY):
@@ -182,6 +185,12 @@ class Node:
         else:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
 
+def clear_bg():
+    for x in range(size_x):
+        for y in range(size_y):
+            libtcod.console_set_char_background(0, x, y, libtcod.black, flag=libtcod.BKGND_SET)
+
+
 def drawInstructionBox(x, y):
     libtcod.console_put_char(0, x, y, 201, libtcod.BKGND_NONE)
     libtcod.console_put_char(0, x + 36, y, 187, libtcod.BKGND_NONE)
@@ -220,10 +229,29 @@ def initNodes():
     focus = -1
     nodes = []
     number = 0
-    for y in [6, 28, 50]:
-        for x in [15, 47, 79, 111]:
+    row_y = [6, 28, 50]
+    row_x = [15, 47, 79, 111]
+    for y in row_y:
+        for x in row_x:
+            read = {}
             disabled = False
-            nodes.append(Node(x, y, number, disabled))
+            if y != row_y[0]:
+                read['up'] = number - 4
+            else:
+                read['up'] = None
+            if x != row_x[0]:
+                read['left'] = number - 1
+            else:
+                read['left'] = None
+            if y != row_y[len(row_y) - 1]:
+                read['down'] = number + 4
+            else:
+                read['down'] = None
+            if x != row_x[len(row_x) - 1]:
+                read['right'] = number + 1
+            else:
+                read['right'] = None
+            nodes.append(Node(x, y, number, disabled, read))
             number += 1
     #drawInstructionBox(2, 4)
     drawConsoleBox(2, 17)
@@ -234,6 +262,8 @@ def play_game():
     mouse = libtcod.Mouse()
     key = libtcod.Key()
     while not libtcod.console_is_window_closed():
+        clear_bg()
+        libtcod.console_set_char_background(0, mouse.cx, mouse.cy, libtcod.Color(50,50,50), flag=libtcod.BKGND_SET)
         timeElapsed = libtcod.sys_elapsed_seconds()
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
         if mouse.lbutton_pressed:
