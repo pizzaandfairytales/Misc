@@ -115,13 +115,63 @@ class Node:
 
     def newline(self):
         libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
-        if len(self.text[14]) == 0 and self.cursorPosY != 14:
+        if len(self.text[14]) == 0 and self.cursorPosY != 15:
             for x in reversed(range(self.cursorPosY + 1, 15)):
                 self.text[x] = self.text[x-1]
             self.text[self.cursorPosY] = self.text[self.cursorPosY - 1][self.cursorPosX - 1:]
             self.text[self.cursorPosY - 1] = self.text[self.cursorPosY - 1][:self.cursorPosX - 1]
             self.cursorPosY += 1
             self.cursorPosX = 1
+
+    def validate(self):
+        good = 0
+        commands = ["MOV", "SAV", "SWP", "ADD", "JMP"]
+        stores = ["UP", "DOWN", "LEFT", "RIGHT", "ACC", "NIL"]
+        labels = {}
+        for line in range(len(self.text)):
+            parts = self.text[line].split()
+            if len(parts) != 0:
+                if parts[0][-1] == ';':
+                    labels[parts[0][:-1]] = line
+        for line in self.text:
+            if line == "":
+                good += 1
+            else:
+                parts = line.split()
+                if parts[0] == "MOV":
+                    if len(parts) != 3:
+                        break
+                    else:
+                        if parts[1] in stores and parts[2] in stores:
+                            good += 1
+                elif parts[0] == "SAV":
+                    if len(parts) != 1:
+                        break
+                    else:
+                        good += 1
+                elif parts[0] == "SWP":
+                    if len(parts) != 1:
+                        break
+                    else:
+                        good += 1
+                elif parts[0] == "ADD":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in stores:
+                            good += 1
+                elif parts[0] == "JMP":
+                    if len(parts) != 2:
+                        break
+                    else:
+                        if parts[1] in labels:
+                            good += 1
+                elif parts[0][:-1] in labels:
+                    good += 1
+        if good >= 15:
+            return True
+        else:
+            return False
 
     def draw(self):
         box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
@@ -250,6 +300,17 @@ def initNodes():
     libtcod.console_print_ex(0, 53, 2, libtcod.LEFT, libtcod.BKGND_NONE, "Input")
     libtcod.console_put_char(0, 55, 4, "\31", libtcod.BKGND_NONE)
     libtcod.console_print_ex(0, 84, 72, libtcod.LEFT, libtcod.BKGND_NONE, "Output")
+    libtcod.console_print_ex(0, 4, 63, libtcod.LEFT, libtcod.BKGND_NONE, "Run")
+
+def run_program():
+    validateCount = 0
+    for node in nodes:
+        if node.validate():
+            validateCount += 1
+        else:
+            print "node " + str(node.number) + " not validated."
+    if validateCount == 12:
+        print "ALL NODES VALIDATED."
 
 def play_game():
     global key, mouse, nodes, timeElapsed, focus
@@ -258,20 +319,24 @@ def play_game():
     key = libtcod.Key()
     while not libtcod.console_is_window_closed():
         clear_bg()
+        libtcod.console_set_char_background(0, 5, 61, libtcod.Color(255,0,0), flag=libtcod.BKGND_SET)
         libtcod.console_set_char_background(0, mouse.cx, mouse.cy, libtcod.Color(50,50,50), flag=libtcod.BKGND_SET)
         timeElapsed = libtcod.sys_elapsed_seconds()
         libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
         if mouse.lbutton_pressed:
-            success = False
-            for num in range(len(nodes)):
-                x = mouse.cx
-                y = mouse.cy
-                if nodes[num].isTileMine(x, y):
-                    focus = num
-                    success = True
-                    nodes[focus].click(x, y)
-            if success == False:
-                focus = -1
+            if mouse.cx == 5 and mouse.cy == 61:
+                run_program()
+            else:
+                success = False
+                for num in range(len(nodes)):
+                    x = mouse.cx
+                    y = mouse.cy
+                    if nodes[num].isTileMine(x, y):
+                        focus = num
+                        success = True
+                        nodes[focus].click(x, y)
+                if success == False:
+                    focus = -1
         if key.vk == libtcod.KEY_ESCAPE:
             return 0
         if focus != -1:
