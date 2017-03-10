@@ -27,7 +27,7 @@ import shelve
 # 177 = medium patch
 # 178 = full patch
 
-LIMIT_FPS = 20
+LIMIT_FPS = 30
 libtcod.console_set_custom_font('consolas8x8_gs_tc.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
 libtcod.console_init_root(170, 65, 'TIS-100 Clone', False)
 libtcod.sys_set_fps(LIMIT_FPS)
@@ -38,10 +38,12 @@ class Node:
         self.x = x
         self.y = y
         self.disabled = disabled
-        self.text = ["", "", "", "", "test", "", "", "", "", "", "", "", "", "", ""]
+        self.text = ["", "", "", "", "test", "a", "bdv", "sdf", "fun", "time", "", "", "", "", ""]
         self.cursorPosX = 0
         self.cursorPosY = 0
         self.cursorSec = 0
+        self.acc = 0
+        self.bak = 0
 
     def isTileMine(self, x, y):
         if x >= self.x + 1 and x <= self.x + 20 and y >= self.y + 1 and y <= self.y + 16:
@@ -80,7 +82,6 @@ class Node:
         elif relativeX > 18:
             relativeX = 18
         else:
-            print len(self.text[self.cursorPosY - 1])
             if len(self.text[self.cursorPosY - 1]) <= relativeX - 1:
                 self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
             else:
@@ -88,17 +89,34 @@ class Node:
 
     def addLetter(self, char):
         char = char.upper()
-        if (char >= 48 and char <= 57) or (char >= chr(65) and char <= chr(90)):
-            if len(self.text[self.cursorPosY - 1]) <= 17:
-                libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
-                self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX:])
-                self.cursorPosX += 1
+        #if (char >= 48 and char <= 57) or (char >= chr(65) and char <= chr(90)):
+        if len(self.text[self.cursorPosY - 1]) <= 17:
+            libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
+            self.text[self.cursorPosY - 1] = (self.text[self.cursorPosY - 1][0:self.cursorPosX]) + char + (self.text[self.cursorPosY - 1][self.cursorPosX:])
+            self.cursorPosX += 1
 
     def backspace(self):
         libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
         if self.cursorPosX >= 2:
             self.text[self.cursorPosY - 1] = self.text[self.cursorPosY - 1][0:self.cursorPosX - 2] + self.text[self.cursorPosY - 1][self.cursorPosX - 1:]
             self.cursorPosX -= 1
+        else:
+            if self.cursorPosY >= 2:
+                self.cursorPosY -= 1
+                self.cursorPosX = len(self.text[self.cursorPosY - 1]) + 1
+                for x in range (self.cursorPosY, 14):
+                    self.text[x] = self.text[x+1]
+                    self.text[14] = ""
+
+    def newline(self):
+        libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.black, flag=libtcod.BKGND_SET)
+        if len(self.text[14]) == 0 and self.cursorPosY != 14:
+            for x in reversed(range(self.cursorPosY + 1, 15)):
+                self.text[x] = self.text[x-1]
+            self.text[self.cursorPosY] = self.text[self.cursorPosY - 1][self.cursorPosX - 1:]
+            self.text[self.cursorPosY - 1] = self.text[self.cursorPosY - 1][:self.cursorPosX - 1]
+            self.cursorPosY += 1
+            self.cursorPosX = 1
 
     def draw(self):
         box = [201, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 205, 203, 205, 205, 205, 205, 205, 187,
@@ -139,6 +157,13 @@ class Node:
         for y in range(15):
             for x in range(len(self.text[y])):
                 libtcod.console_put_char(0, self.x + 1 + x, self.y + 1 + y, self.text[y][x], libtcod.BKGND_NONE)
+        if not self.disabled:
+            libtcod.console_set_default_foreground(0, libtcod.Color(150,150,150))
+            libtcod.console_print_ex(0, self.x + 22, self.y + 1, libtcod.BKGND_NONE, libtcod.LEFT, "ACC")
+            libtcod.console_print_ex(0, self.x + 22, self.y + 4, libtcod.BKGND_NONE, libtcod.LEFT, "BAK")
+            libtcod.console_set_default_foreground(0, libtcod.white)
+            libtcod.console_print_ex(0, self.x + 22, self.y + 2, libtcod.BKGND_NONE, libtcod.LEFT, str(self.acc))
+            libtcod.console_print_ex(0, self.x + 22, self.y + 5, libtcod.BKGND_NONE, libtcod.LEFT, str(self.bak))
         if timeElapsed % 1 > .5 and focus == self.number and not self.disabled:
             libtcod.console_set_char_background(0, self.x + self.cursorPosX, self.y + self.cursorPosY, libtcod.white, flag=libtcod.BKGND_SET)
         else:
@@ -217,7 +242,7 @@ def play_game():
         if key.vk == libtcod.KEY_BACKSPACE:
             nodes[focus].backspace()
         if key.vk == libtcod.KEY_ENTER:
-            continue
+            nodes[focus].newline()
         if key.vk == libtcod.KEY_UP:
             if focus != -1:
                 nodes[focus].goto(nodes[focus].cursorPosX, nodes[focus].cursorPosY - 1)
@@ -230,7 +255,7 @@ def play_game():
         if key.vk == libtcod.KEY_RIGHT:
             if focus != -1:
                 nodes[focus].goto(nodes[focus].cursorPosX + 1, nodes[focus].cursorPosY)
-        if chr(key.c) >= chr(33) and chr(key.c) <= chr(126):
+        if chr(key.c) >= chr(32) and chr(key.c) <= chr(126):
             if focus != -1:
                 nodes[focus].addLetter(chr(key.c))
         for element in nodes:
