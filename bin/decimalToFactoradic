@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+import fileinput
+
+def factorial(x):
+        if (x == 1):
+                return 1
+        else:
+                return x*factorial(x-1)
+
+for line in fileinput.input():
+	x = 1
+	sum = int(line)
+	while factorial(x) < sum:
+		x += 1
+	x -= 1
+	factoradic = ""
+	factSum = 0
+	while x >= 1:
+		temp = 0
+		while factSum + (temp*factorial(x)) <= sum:
+			temp += 1
+		temp -= 1
+		factSum += temp*factorial(x)
+		factoradic += str(temp) + "*" + str(x) + "! + "
+		x -= 1
+	print factoradic[:-3]

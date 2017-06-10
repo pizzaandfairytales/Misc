@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+import fileinput
+
+for line in fileinput.input():
+	print bin(int(line, 16))[2:].zfill(len(line) * 4)[4:].strip()

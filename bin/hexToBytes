@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+import fileinput
+import binascii
+
+for line in fileinput.input():
+	print binascii.unhexlify(''.join(line.split()))

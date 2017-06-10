@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Caleb Bernard 2016
+# Manages "jumpmarks" which allow quick navigation among your directories.
+
+helptext(){
+	echo
+	echo "If this is your first time using,"
+	echo "please reload .bashrc by restarting your shell."
+	echo
+	echo "Usage:"
+	echo "Mark your current directory with jump -m [label]"
+	echo "Jump to a labeled directory with jump [label]"
+	echo "Remove a jumpmark with jump -r [label]"
+	echo "List all jumpmarks with jump -l"
+	echo "Delete all jumpmarks with jump -d"
+	echo "See this message with jump -h[elp]"
+	echo
+}
+
+
+saveFile="$HOME/.jump"
+
+checkAlias=$(grep -c "alias jump='. jump'" ~/.bashrc)
+if [ $checkAlias -eq 0 ]
+then
+	echo "alias jump='. jump'" >> ~/.bashrc
+fi
+
+if [ ! -e $saveFile ]
+then
+	touch $saveFile
+fi
+if [ $# -eq 0 ]
+then
+	helptext
+else
+	if [ $# -eq 1 ]
+	then
+		if [ "$1" == "-l" ]
+		then
+			echo "Stored jumpmarks:"
+			cat $saveFile
+		else
+			if [ "$1" == "-d" ]
+			then
+				echo "Are you sure you want to delete all jumpmarks? [y/N]: "
+				read confirm
+				if [[ "$confirm" == "y" ]] || [[ "$confirm" == "Y" ]] || [[ "$confirm" == "yes" ]] || [[ "$confirm" == "Yes" ]]
+				then
+					rm $saveFile
+					touch $saveFile
+					echo "ALl marks deleted."
+				else
+					echo "No marks deleted."
+				fi
+			else
+				if [[ "$1" == "-h" ]] || [[ "$1" == "-help" ]]
+				then
+					helptext
+				else
+					dir=$(grep -x "$1 .*" $saveFile)
+					dir=$(grep -o " .*$" <<< $dir)
+					if [ "$dir" != "" ]
+					then
+						cd $dir
+						ls
+					else
+						echo "That jumpmark not found."
+					fi
+				fi
+			fi
+		fi
+
+	else
+		if [ $# -eq 2 ]
+		then
+			if [ "$1" == "-m" ]
+			then
+				if [ $(grep -cv "^[a-zA-Z0-9]*$" <<< $2) -gt 0 ]
+				then
+					echo "Marks may only use alphanumeric characters."
+				else
+					duplicate=$(grep -cx "^$2 .*" $saveFile)
+					if [ $duplicate -gt 0 ]
+					then
+						echo "There is already a mark with that name."
+					else
+						echo "$2 $PWD" >> $saveFile
+					fi
+				fi
+			else
+				if [ "$1" == "-r" ]
+				then
+					sed -i "/^$2/d" $saveFile
+					echo "Jump mark deleted."
+				fi
+			fi
+		else
+			echo "Bad number of arguments"
+		fi
+	fi
+fi
