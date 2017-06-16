@@ -1,7 +1,6 @@
 // bitwise fizzbuzz
 // Caleb Bernard 2017
 #include "iostream"
-#include "string"
 
 int main()
 {
