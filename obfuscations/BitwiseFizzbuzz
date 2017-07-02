@@ -1,5 +1,13 @@
-// Obfuscated Fizzbuzz
+// bitwise fizzbuzz
 // Caleb Bernard 2017
-// 443 bytes
 #include "iostream"
-void main(int x){unsigned char y='I',z='i';bool c=!x;for(int a=0x16bc;a!=0x21bf;a=(a>>1)|((((a>>0)^(a>>2)^(a>>3)^(a>>5))&1)<<0xF)){if(!c&&z=='i'){z=((z<<1)|(z>>7)),c=!c;}else if(c&&z=='i'){c=!c;}(c)?z=((z<<1)|(z>>7)):x;if(z&1){std::cout<<x<<'\n';}else{(y=='R')?std::cout<<"FizzBuzz\n",y=((y<<2)|(y>>6)):y=((y<<1)|(y>>7)),(y&1)?std::cout<<"Buzz\n":std::cout<<"Fizz\n";}(!c)?z=((z>>1)|(z<<7)):x;x^=x&~-~x|~x&-~x;}std::cin>>x;}
+void main(int x){
+	unsigned char y = 'I', z = 'i';	bool c = !x;
+	for (int a = 0x16bc; a != 0x21bf; a = (a >> 1) | ((((a >> 0) ^ (a >> 2) ^ (a >> 3) ^ (a >> 5)) & 1) << 0xF)) {
+		if (!c && z == 'i') { z = ((z << 1) | (z >> 7)), c = !c; }
+		else if (c && z == 'i') { c = !c; }
+		(c) ? z = ((z << 1) | (z >> 7)) : x;
+		if (z & 1) { std::cout << x << '\n'; }
+		else
+			(y == 'R') ? std::cout << "FizzBuzz\n", y = ((y << 2) | (y >> 6)) :	y = ((y << 1) | (y >> 7)), (y & 1) ? std::cout << "Buzz\n" : std::cout << "Fizz\n";
+		(!c) ? z = ((z >> 1) | (z << 7)) : x;x ^= x&~- ~x | ~x&-~x;} std::cin >> x;}
