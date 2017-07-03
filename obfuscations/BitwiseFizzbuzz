@@ -1,7 +1,11 @@
 // bitwise fizzbuzz
 // Caleb Bernard 2017
+
+// Now compiles with g++
+// Also output is subtly broken so I'll have to figure out why (shudder) and roll back a change sometime.
+
 #include "iostream"
-void main(int x){
+int main(int x){
 	unsigned char y = 'I', z = 'i', c = !x;
 	for (int a = '+.'; a != 'H<'; a = a >> 1 | ((a >> 0 ^ a >> 2 ^ a >> 3 ^ a >> 5) & 1) << 0xF) {
 		if (!c && z == 'i') z = z << 1 | z >> 7, c ^= 1;
@@ -13,4 +17,5 @@ void main(int x){
 		!c ? z = z >> 1 | z << 7 : x;x ^= x&~- ~x | ~x&-~x;
 	} 
 	std::cin >> x;
+	return 0;
 }
