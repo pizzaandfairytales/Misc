@@ -3,6 +3,7 @@
 
 // Now compiles with g++
 // Also output is subtly broken so I'll have to figure out why (shudder) and roll back a change sometime.
+// Update: Only the first 2 commits produce correct output
 
 #include "iostream"
 int main(int x){
