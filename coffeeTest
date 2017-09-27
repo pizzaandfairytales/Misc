@@ -1,0 +1,71 @@
+css = document.createElement "style"
+css.type = "text/css"
+css.innerHTML = "html {background-color: black}"
+document.head.appendChild css
+c = document.getElementById "canvas"
+canvas = c.getContext "2d"
+fontSize = 18
+fontFace = "Courier"
+font = "#{fontSize}px #{fontFace}"
+canvas.font = font
+c.style = "border:1px solid white;"
+yborder = 13
+xborder = 5
+xUnit = 10
+yUnit = 14
+xTiles = 80
+yTiles = 25
+c.width = xborder + (xUnit * xTiles)
+c.height = yborder + (yUnit * yTiles)
+
+drawChar = (char, color, x, y) ->
+  canvas.fillStyle = color
+  xCoord = xborder + (x * xUnit)
+  yCoord = yborder + (y * yUnit)
+  canvas.fillText char, xCoord, yCoord
+
+class actor
+  constructor: (@char, @color, @x, @y) ->
+  draw: () ->
+    drawChar @char, @color, @x, @y
+  attemptMove: (x, y) ->
+
+class map
+  constructor: ->
+    @terrain = []
+    @items = []
+    @actors = []
+    @finishedMap = {}
+  render: ->
+    @finishedMap = {}
+    @finishedMap["#{terrain.x}, #{terrain.y}"] = terrain for terrain in @terrain
+    @finishedMap["#{item.x}, #{item.y}"] = item for item in @items
+    @finishedMap["#{actor.x}, #{actor.y}"] = actor for actor in @actors
+  draw: ->
+    this.render()
+    value.draw() for key, value of @finishedMap
+
+class terrain
+  constructor: (@char, @color, @x, @y, @blocking) ->
+  draw: ->
+    drawChar @char, @color, @x, @y
+
+class game # can contain things like key handlers, map generators, etc.
+
+player = new actor '@', 'yellow', 5, 5
+gameMap = new map
+gameMap.terrain.push new terrain ".", "white", x, y, false for x in [0..xTiles - 1] for y in [0..yTiles - 1]
+gameMap.actors.push player
+
+addEventListener "keyup", (key) => mainLoop key
+
+mainLoop = (key) ->
+  switch key.code
+    when "ArrowUp" then player.y -= 1 if player.y > 0
+    when "ArrowDown" then player.y += 1 if player.y < yTiles-1
+    when "ArrowLeft" then player.x -= 1 if player.x > 0
+    when "ArrowRight" then player.x += 1 if player.x < xTiles-1
+  canvas.clearRect 0,0,c.width,c.height
+  gameMap.draw()
+
+gameMap.draw()
