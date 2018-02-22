@@ -230,27 +230,36 @@ void Dijkstra(string start, string finish, vector<vector<string> > words, int to
     vector<Node*> visited;
     unvisited.push_back(startNode);
     int index = 0;
-
+    clock_t timer = clock();
+    clock_t totalTimer = clock();
     while (!finished(unvisited, visited, finish)){
         //cout << unvisited[index]->word << '\n';
         vector<string> neighbors = findNeighbors(unvisited[index]->word, words);
         for (int x = 0; x < neighbors.size(); x++){
             Node * n = 0;
-            for (int y = 0; y < unvisited.size(); y++){
-                if (unvisited[y]->word == neighbors[x]){
-                    n = unvisited[y];
+            bool alreadyDone = false;
+            for (int y = 0; y < visited.size(); y++){
+                if (visited[y]->word == neighbors[x]){
+                    alreadyDone = true;
                 }
             }
-            if (n == 0){
-                Node * temp = new Node();
-                temp->distance = unvisited[index]->distance + 1;
-                temp->word = neighbors[x];
-                temp->previous = unvisited[index];
-                unvisited.push_back(temp);
-            } else {
-                if (n->distance == -1 || n->distance > unvisited[index]->distance + 1){
-                    n->distance = unvisited[index]->distance + 1;
-                    n->previous = unvisited[index];
+            if (!alreadyDone){
+                for (int y = 0; y < unvisited.size(); y++){
+                    if (unvisited[y]->word == neighbors[x]){
+                        n = unvisited[y];
+                    }
+                }
+                if (n == 0){
+                    Node * temp = new Node();
+                    temp->distance = unvisited[index]->distance + 1;
+                    temp->word = neighbors[x];
+                    temp->previous = unvisited[index];
+                    unvisited.push_back(temp);
+                } else {
+                    if (n->distance == -1 || n->distance > unvisited[index]->distance + 1){
+                        n->distance = unvisited[index]->distance + 1;
+                        n->previous = unvisited[index];
+                    }
                 }
             }
         }
@@ -260,6 +269,9 @@ void Dijkstra(string start, string finish, vector<vector<string> > words, int to
         // Output our progress
         if (visited.size() % 100 == 0){
             cout << "Amount visited: " << visited.size() << " out of " << totalSize << '\n';
+            cout << "Time of last 100: " << floor((float(clock () - timer)/CLOCKS_PER_SEC)) << " seconds.\n";
+            cout << "Total time so far: " << floor((float(clock () - totalTimer)/CLOCKS_PER_SEC) / 60) << " minutes.\n";
+            timer = clock();
         }
         // choose new current
         int minimum = -1;
@@ -275,6 +287,17 @@ void Dijkstra(string start, string finish, vector<vector<string> > words, int to
         if (visited[x]->word == finish){
             cout << "Distance from start to finish: " << visited[x]->distance << '\n';
         }
+    }
+
+    bool found = false;
+    for (int x = 0; x < visited.size(); x++){
+        if (visited[x]->word == finish){
+            found = true;
+        }
+    }
+    if (!found){
+        cout << "No path available.\n";
+        return;
     }
 
     cout << "Path from start to finish:\n";
@@ -321,7 +344,7 @@ int main(int argc, char** argv){
     if (argc == 4){
         wordlistFile = argv[3];
     } else {
-        wordlistFile = "wordlist.txt";
+        wordlistFile = "crosswordlist.txt";
     }
 
     // removing duplicates from our wordlist adds too much time overhead
@@ -344,6 +367,6 @@ int main(int argc, char** argv){
         }
         return 0;
     }
-    std::cout << "Complete. Took " << (float(clock () - timer)/CLOCKS_PER_SEC) << " seconds.\n";
+    std::cout << "Complete. Took " << floor((float(clock () - timer)/CLOCKS_PER_SEC) / 60) << " minutes.\n";
     return 0;
 }
