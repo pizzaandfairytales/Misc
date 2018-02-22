@@ -8,12 +8,6 @@
 #include <cstdlib>
 using namespace std;
 
-
-/*
-    very slow currently!
-    speed it up by dividing up wordlist by length,
-    and only checking neighbors from the right length list.
-*/
 struct Node {
     string word;
     int distance;
