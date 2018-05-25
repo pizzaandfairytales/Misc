@@ -1,4 +1,5 @@
 // Caleb Bernard 2018
+// C/gcc
 main(int a) {
 	unsigned char b = 'I', c = 'i', d = !a;
 	for (int e = 'yU'; e != 'r-' &
