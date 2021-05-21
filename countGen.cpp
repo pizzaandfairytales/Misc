@@ -1,5 +1,5 @@
 // Obfuscated Counter Generator
-// Caleb Bernard
+// Emory May Bernard
 // Outputs a C++ program with a heavily obfuscated for loop!
 #include <iostream>
 #include <ctime>
